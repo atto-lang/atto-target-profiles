@@ -19,8 +19,14 @@ export function validateRegistry(profiles) {
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
 }
-export function validateClosure({schemaVersion,nodes,entry,target,backend,grants=[]},profiles) {
+export function validateClosure(input,profiles) {
+  if(!input||typeof input!=="object"||Array.isArray(input))
+    return {ok:false,errors:["resolved graph must be an object"]};
+  const {schemaVersion,nodes,entry,target,backend,grants=[]}=input;
   const errors=[];
+  for(const key of Object.keys(input))
+    if(!["schemaVersion","nodes","entry","target","backend","grants"].includes(key))
+      errors.push("unknown resolved-graph property "+key);
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
   if(typeof backend!=="string"||!BACKENDS.includes(backend))errors.push("missing or unknown backend");
   const registry=validateRegistry(profiles);
@@ -71,5 +77,11 @@ export function validateClosure({schemaVersion,nodes,entry,target,backend,grants
     }
   }
   if(visited.size!==ids.size) errors.push("graph contains "+(ids.size-visited.size)+" unreachable units; supply exact linked closure");
+  // A resolved, closed dependency graph has an exact effect budget. Reject
+  // unused grants rather than provisioning authority no unit can justify.
+  const used=new Set();
+  for(const unit of ids.values())for(const effect of unit.requires)used.add(effect);
+  const unused=grants.filter(capability=>!used.has(capability));
+  if(unused.length)errors.push("unused build grants: "+unused.join(","));
   return {ok:errors.length===0,errors,visited:visited.size};
 }
