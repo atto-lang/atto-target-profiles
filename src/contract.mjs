@@ -9,6 +9,8 @@ export function validateRegistry(profiles) {
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
     if (!p || typeof p!=="object" || Array.isArray(p)) {errors.push(at+": expected object");continue}
+    for(const field of ["schemaVersion","name","backends","capabilities"])
+      if(!Object.hasOwn(p,field))errors.push(at+": missing own "+field);
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
     if (seen.has(p.name)) errors.push(at+": duplicate environment "+p.name);
     seen.add(p.name);
@@ -45,6 +47,8 @@ export function validateClosure(input,profiles) {
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
     if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
+    for(const field of ["id","targets","requires","imports"])
+      if(!Object.hasOwn(node,field))errors.push(at+": missing own "+field);
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
     if(ids.has(node.id))errors.push(at+": duplicate id "+node.id);
     ids.set(node.id,node);
