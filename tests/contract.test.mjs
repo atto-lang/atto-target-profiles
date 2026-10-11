@@ -44,3 +44,21 @@ test("profile notes must match declared JSON schema string type",()=>{
  altered[0].notes={not:"a string"};
  assert.match(validateRegistry(altered).errors.join("\n"),/notes must be a string/);
 });
+
+test("registry profiles reject inherited mandatory fields even when values are valid",()=>{
+ const altered=profiles.map(p=>({...p}));
+ const p=altered[0];
+ const inherited=Object.create({schemaVersion:p.schemaVersion,name:p.name,backends:p.backends,capabilities:p.capabilities});
+ altered[0]=inherited;
+ const result=validateRegistry(altered);
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\n"),/missing own/);
+});
+test("linked graph units must explicitly own all four semantic fields",()=>{
+ const original={id:"app",targets:["browser"],requires:[],imports:[]};
+ const inherited=Object.create(original);
+ const graph={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:[],nodes:[inherited]};
+ const result=check(graph);
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\n"),/missing own/);
+});
