@@ -8,7 +8,7 @@ const good={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:[
 const check=data=>validateClosure(data,profiles);
 test("eight versioned target profiles conform to vocabulary",()=>assert.deepEqual(validateRegistry(profiles),{ok:true,errors:[]}));
 test("portable graph passes",()=>assert.equal(check(good).ok,true));
-test("cycles terminate safely",()=>assert.equal(check({...good,nodes:[good.nodes[0],{...good.nodes[1],imports:["app"]}]}).ok,true));
+test("cycles terminate safely when both directions declare transitive requirements",()=>assert.equal(check({...good,nodes:[good.nodes[0],{...good.nodes[1],requires:good.nodes[0].requires,imports:["app"]}]}).ok,true));
 test("import target coverage is checked across all promised targets",()=>{const r=check({...good,nodes:[good.nodes[0],{...good.nodes[1],targets:["browser"]}]});assert.match(r.errors.join("\n"),/imported targets/)});
 test("dependency cannot escalate declared effects",()=>{const r=check({...good,nodes:[good.nodes[0],{...good.nodes[1],requires:["net.server"]}]});assert.match(r.errors.join("\n"),/requirements/)});
 test("capability budget cannot exceed host profile",()=>{const r=check({...good,grants:["interop.java"]});assert.match(r.errors.join("\n"),/grant unavailable/)});
