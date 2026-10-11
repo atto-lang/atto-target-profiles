@@ -32,3 +32,15 @@ test("oversized graph and excessive fanout are refused",()=>{
  assert.match(check({...good,nodes:Array.from({length:4097},(_,i)=>({id:"unit"+i,targets:["browser"],requires:[],imports:[]}))}).errors.join("\n"),/4096/);
  assert.match(check({...good,nodes:[{...good.nodes[0],imports:Array.from({length:257},(_,i)=>"x"+i)},good.nodes[1]]}).errors.join("\n"),/excessive/);
 });
+
+test("resolved graph requires own mandatory keys; inherited values cannot certify admission",()=>{
+ const inherited=Object.create({schemaVersion:1,entry:"app",target:"browser",backend:"wasm",
+  nodes:[{id:"app",targets:["browser"],requires:[],imports:[]}]});
+ assert.equal(check(inherited).ok,false);
+ assert.match(check(inherited).errors.join("\n"),/missing resolved-graph property/);
+});
+test("profile notes must match declared JSON schema string type",()=>{
+ const altered=profiles.map(x=>({...x}));
+ altered[0].notes={not:"a string"};
+ assert.match(validateRegistry(altered).errors.join("\n"),/notes must be a string/);
+});
