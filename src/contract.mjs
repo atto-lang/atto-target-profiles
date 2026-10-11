@@ -23,10 +23,10 @@ export function validateRegistry(profiles) {
 export function validateClosure(input,profiles) {
   if(!input||typeof input!=="object"||Array.isArray(input))
     return {ok:false,errors:["resolved graph must be an object"]};
+  const errors=[];
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
     if(!Object.hasOwn(input,field))errors.push("missing resolved-graph property "+field);
   const {schemaVersion,nodes,entry,target,backend,grants=[]}=input;
-  const errors=[];
   for(const key of Object.keys(input))
     if(!["schemaVersion","nodes","entry","target","backend","grants"].includes(key))
       errors.push("unknown resolved-graph property "+key);
