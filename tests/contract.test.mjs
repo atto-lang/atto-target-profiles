@@ -4,7 +4,7 @@ import {spawnSync} from "node:child_process";
 import {validateRegistry,validateClosure} from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
-const good={entry:"app",target:"browser",backend:"wasm",grants:["clock","net.client"],nodes:[{id:"app",targets:["browser","server"],requires:["clock","net.client"],imports:["dep"]},{id:"dep",targets:["browser","server"],requires:["net.client"],imports:[]}]};
+const good={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:["clock","net.client"],nodes:[{id:"app",targets:["browser","server"],requires:["clock","net.client"],imports:["dep"]},{id:"dep",targets:["browser","server"],requires:["net.client"],imports:[]}]};
 const check=data=>validateClosure(data,profiles);
 test("eight versioned target profiles conform to vocabulary",()=>assert.deepEqual(validateRegistry(profiles),{ok:true,errors:[]}));
 test("portable graph passes",()=>assert.equal(check(good).ok,true));
@@ -16,3 +16,19 @@ test("build must grant all transitive effects",()=>{const r=check({...good,grant
 test("unknown imports, target and backend fail closed",()=>{for(const changed of [{...good,target:"anywhere"},{...good,backend:"dex"},{...good,nodes:[{...good.nodes[0],imports:["missing"]},good.nodes[1]]}])assert.equal(check(changed).ok,false)});
 test("duplicate/unknown capabilities and unreachable units rejected",()=>{for(const changed of [{...good,grants:["clock","clock"]},{...good,grants:["clock","superuser"]},{...good,nodes:[...good.nodes,{id:"extra",targets:["server"],requires:[],imports:[]}]}])assert.equal(check(changed).ok,false)});
 test("CLI examples run",()=>{const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;const fixture=new URL("../examples/portable-closure.json",import.meta.url).pathname;const p=spawnSync(process.execPath,[cli,"check-closure",fixture,"--target=browser","--backend=wasm","--grants=clock,net.client"],{encoding:"utf8"});assert.equal(p.status,0,p.stderr);assert.match(p.stdout,/2 units/)});
+
+test("graph schema and backend must be explicit",()=>{
+ assert.match(check({...good,schemaVersion:2}).errors.join("\n"),/schemaVersion/);
+ assert.match(check({...good,backend:undefined}).errors.join("\n"),/backend/);
+});
+test("deep linear import chains do not overflow the verifier",()=>{
+ const n=3000;
+ const nodes=Array.from({length:n},(_,i)=>({id:"unit"+i,targets:["browser"],requires:[],imports:i===n-1?[]:["unit"+(i+1)]}));
+ const r=check({...good,entry:"unit0",grants:[],nodes});
+ assert.equal(r.ok,true,r.errors.join("; "));
+ assert.equal(r.visited,n);
+});
+test("oversized graph and excessive fanout are refused",()=>{
+ assert.match(check({...good,nodes:Array.from({length:4097},(_,i)=>({id:"unit"+i,targets:["browser"],requires:[],imports:[]}))}).errors.join("\n"),/4096/);
+ assert.match(check({...good,nodes:[{...good.nodes[0],imports:Array.from({length:257},(_,i)=>"x"+i)},good.nodes[1]]}).errors.join("\n"),/excessive/);
+});
