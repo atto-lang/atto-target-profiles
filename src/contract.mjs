@@ -19,8 +19,10 @@ export function validateRegistry(profiles) {
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
 }
-export function validateClosure({nodes,entry,target,backend,grants=[]},profiles) {
+export function validateClosure({schemaVersion,nodes,entry,target,backend,grants=[]},profiles) {
   const errors=[];
+  if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
+  if(typeof backend!=="string"||!BACKENDS.includes(backend))errors.push("missing or unknown backend");
   const registry=validateRegistry(profiles);
   if (!registry.ok) return registry;
   const profile=profiles.find(x=>x.name===target);
@@ -29,37 +31,45 @@ export function validateClosure({nodes,entry,target,backend,grants=[]},profiles)
   if (!unique(grants)||!subset(grants,CAPABILITIES)) errors.push("invalid or duplicate grants");
   if (profile && unique(grants) && !subset(grants,profile.capabilities)) errors.push("capability grant unavailable in "+target);
   if (!Array.isArray(nodes)||nodes.length===0) return {ok:false,errors:[...errors,"nodes must be a nonempty array"]};
+  if(nodes.length>4096)return {ok:false,errors:[...errors,"resolved graph exceeds 4096 units"]};
   const ids=new Map();
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
     if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
-    if(typeof node.id!=="string"||!node.id){errors.push(at+": invalid id");continue}
+    if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\\0")){errors.push(at+": invalid id");continue}
     if(ids.has(node.id))errors.push(at+": duplicate id "+node.id);
     ids.set(node.id,node);
     if(!unique(node.targets)||node.targets.length===0||!subset(node.targets,ENVIRONMENTS))errors.push(node.id+": invalid targets");
     if(!unique(node.requires)||!subset(node.requires,CAPABILITIES))errors.push(node.id+": invalid requires");
-    if(!unique(node.imports))errors.push(node.id+": invalid imports");
+    if(!unique(node.imports)||node.imports.length>256||node.imports.some(x=>x.length>512||x.includes("\\0")))errors.push(node.id+": invalid or excessive imports");
     for(const field of Object.keys(node))if(!["id","targets","requires","imports"].includes(field))errors.push(node.id+": unknown property "+field);
   }
   if(!ids.has(entry))errors.push("missing entry "+entry);
   if(errors.length) return {ok:false,errors};
+  // Iterative graph traversal avoids adversarial recursion depth and ensures
+  // cycles terminate. Check the promised target set of *every* import edge,
+  // not just compatibility with today's selected compilation target.
   const visited=new Set();
-  const visit=id=>{
-    if(visited.has(id))return;
+  const pending=[entry];
+  let edges=0;
+  while(pending.length){
+    const id=pending.pop();
+    if(visited.has(id))continue;
     visited.add(id);
     const a=ids.get(id);
     if(!a.targets.includes(target))errors.push(id+": target "+target+" not admitted");
     if(!subset(a.requires,grants))errors.push(id+": missing build grants "+a.requires.filter(x=>!grants.includes(x)).join(","));
     if(profile&&!subset(a.requires,profile.capabilities))errors.push(id+": target "+target+" lacks declared capabilities");
     for(const dep of a.imports){
+      edges++;
+      if(edges>65536)return {ok:false,errors:[...errors,"resolved graph exceeds 65536 import edges"]};
       if(!ids.has(dep)){errors.push(id+": unresolved import "+dep);continue}
       const b=ids.get(dep);
       if(!subset(a.targets,b.targets))errors.push(id+" -> "+dep+": imported targets do not cover importer targets");
       if(!subset(b.requires,a.requires))errors.push(id+" -> "+dep+": imported requirements are not declared by importer");
-      visit(dep);
+      if(!visited.has(dep))pending.push(dep);
     }
-  };
-  visit(entry);
+  }
   if(visited.size!==ids.size) errors.push("graph contains "+(ids.size-visited.size)+" unreachable units; supply exact linked closure");
   return {ok:errors.length===0,errors,visited:visited.size};
 }
