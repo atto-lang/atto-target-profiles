@@ -36,12 +36,12 @@ export function validateClosure({schemaVersion,nodes,entry,target,backend,grants
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
     if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
-    if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\\0")){errors.push(at+": invalid id");continue}
+    if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
     if(ids.has(node.id))errors.push(at+": duplicate id "+node.id);
     ids.set(node.id,node);
     if(!unique(node.targets)||node.targets.length===0||!subset(node.targets,ENVIRONMENTS))errors.push(node.id+": invalid targets");
     if(!unique(node.requires)||!subset(node.requires,CAPABILITIES))errors.push(node.id+": invalid requires");
-    if(!unique(node.imports)||node.imports.length>256||node.imports.some(x=>x.length>512||x.includes("\\0")))errors.push(node.id+": invalid or excessive imports");
+    if(!unique(node.imports)||node.imports.length>256||node.imports.some(x=>x.length>512||x.includes("\u0000")))errors.push(node.id+": invalid or excessive imports");
     for(const field of Object.keys(node))if(!["id","targets","requires","imports"].includes(field))errors.push(node.id+": unknown property "+field);
   }
   if(!ids.has(entry))errors.push("missing entry "+entry);
