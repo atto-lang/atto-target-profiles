@@ -9,6 +9,8 @@ export function validateRegistry(profiles) {
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
     if (!p || typeof p!=="object" || Array.isArray(p)) {errors.push(at+": expected object");continue}
+    const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
+    if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
     if (seen.has(p.name)) errors.push(at+": duplicate environment "+p.name);
     seen.add(p.name);
@@ -29,7 +31,10 @@ export function validateClosure(input,profiles) {
     if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
     if(!Object.hasOwn(input,field))errors.push("missing resolved graph property "+field);
-  const {schemaVersion,nodes,entry,target,backend,grants=[]}=input;
+  const {schemaVersion,nodes,entry,target,backend}=input;
+  // Omitted optional grants mean none. Never inherit authority through a
+  // modified prototype or an object created by Object.create(otherGraph).
+  const grants=Object.hasOwn(input,"grants")?input.grants:[];
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
   if(typeof backend!=="string"||!BACKENDS.includes(backend))errors.push("missing or unknown backend");
   const registry=validateRegistry(profiles);
@@ -45,6 +50,8 @@ export function validateClosure(input,profiles) {
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
     if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
+    const missing=["id","targets","requires","imports"].filter(k=>!Object.hasOwn(node,k));
+    if(missing.length){errors.push(at+": missing own node fields "+missing.join(","));continue}
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
     if(ids.has(node.id))errors.push(at+": duplicate id "+node.id);
     ids.set(node.id,node);
