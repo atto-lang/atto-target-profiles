@@ -179,7 +179,7 @@ test("malformed symbol and hostile graph selectors reject without coercion",()=>
 
 
 test("NUL in graph entry is rejected independently from missing map identity",()=>{
- const invalid=check({...good,entry:"app\\u0000"});
+ const invalid=check({...good,entry:"app"+String.fromCharCode(0)});
  assert.equal(invalid.ok,false);
  assert.match(invalid.errors.join("\\n"),/invalid resolved graph entry/);
 });
