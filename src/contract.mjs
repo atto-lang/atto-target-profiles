@@ -4,24 +4,44 @@ export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex",
 // Authority-bearing lists must be dense, own-indexed, unique JSON-like arrays.
 // Array#every skips holes, and inherited numeric entries can otherwise mask
 // absent capabilities/targets, making a malformed build graph appear valid.
+// JSON-like authority arrays must have ONLY own, non-accessor numeric slots.
+// In particular, allow no shadowed includes/every/entries, custom prototypes
+// or sparse slots: all can subvert policy checks despite a correct length.
+const ownDenseArray=(a,max=4096)=>{
+  if(!Array.isArray(a)||Object.getPrototypeOf(a)!==Array.prototype||a.length>max)return false;
+  if(Reflect.ownKeys(a).length!==a.length+1)return false;
+  for(let i=0;i<a.length;i++){
+    const slot=Object.getOwnPropertyDescriptor(a,String(i));
+    if(!slot||!Object.hasOwn(slot,'value'))return false;
+  }
+  return true;
+};
+const dataOnly=o=>Reflect.ownKeys(o).every(key=>
+  typeof key==='string'&&Object.hasOwn(Object.getOwnPropertyDescriptor(o,key),'value'));
 const unique = a => {
-  if(!Array.isArray(a)||a.length>4096)return false;
+  if(!ownDenseArray(a))return false;
   const seen=new Set();
   for(let i=0;i<a.length;i++){
-    if(!Object.hasOwn(a,i))return false;
     const x=a[i];
-    if(typeof x!=="string"||x.length===0||seen.has(x))return false;
+    if(typeof x!=='string'||x.length===0||seen.has(x))return false;
     seen.add(x);
   }
   return true;
 };
-const subset = (a,b) => a.every(x=>b.includes(x));
+// Never dispatch policy checks through caller-controlled array methods.
+const subset=(a,b)=>{
+  const allowed=new Set();
+  for(let i=0;i<b.length;i++)allowed.add(b[i]);
+  for(let i=0;i<a.length;i++)if(!allowed.has(a[i]))return false;
+  return true;
+};
+
 export function validateRegistry(profiles) {
   const errors=[],seen=new Set();
-  if (!Array.isArray(profiles)) return {ok:false,errors:["registry must be an array"]};
+  if (!ownDenseArray(profiles)) return {ok:false,errors:["registry must be a dense own-indexed array"]};
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
-    if (!p || typeof p!=="object" || Array.isArray(p)) {errors.push(at+": expected object");continue}
+    if (!p || typeof p!=="object" || Array.isArray(p) || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
     const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
     if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
@@ -37,7 +57,7 @@ export function validateRegistry(profiles) {
 }
 export function validateClosure(input,profiles) {
   const errors=[];
-  if(!input||typeof input!=="object"||Array.isArray(input))
+  if(!input||typeof input!=="object"||Array.isArray(input)||!dataOnly(input))
     return {ok:false,errors:["resolved graph must be an object"]};
   const keys=["schemaVersion","nodes","entry","target","backend","grants"];
   for(const field of Object.keys(input))
@@ -58,10 +78,11 @@ export function validateClosure(input,profiles) {
   if (profile && unique(grants) && !subset(grants,profile.capabilities)) errors.push("capability grant unavailable in "+target);
   if (!Array.isArray(nodes)||nodes.length===0) return {ok:false,errors:[...errors,"nodes must be a nonempty array"]};
   if(nodes.length>4096)return {ok:false,errors:[...errors,"resolved graph exceeds 4096 units"]};
+  if(!ownDenseArray(nodes))return {ok:false,errors:[...errors,"nodes must be a dense own-indexed array"]};
   const ids=new Map();
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
-    if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
+    if(!node||typeof node!=="object"||Array.isArray(node)||!dataOnly(node)){errors.push(at+": expected plain data object");continue}
     const missing=["id","targets","requires","imports"].filter(k=>!Object.hasOwn(node,k));
     if(missing.length){errors.push(at+": missing own node fields "+missing.join(","));continue}
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
