@@ -123,3 +123,28 @@ test("accessor-supplied authority cannot change across validation phases",()=>{
  Object.defineProperty(node,"requires",{enumerable:true,get(){return ["clock","net.client"]}});
  assert.equal(check({...good,nodes:[node,good.nodes[1]]}).ok,false);
 });
+
+// Retain the independent main-branch (#7) regression cases during conflict resolution.
+test("registry profiles must own all mandatory admission keys",()=>{
+ const inherited=profiles.map(x=>({...x}));
+ inherited[0]=Object.create(profiles[0]);
+ const result=validateRegistry(inherited);
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\n"),/missing own registry fields/);
+});
+test("graph nodes cannot inherit required capability declarations",()=>{
+ const inheritedNode=Object.create(good.nodes[0]);
+ const result=check({...good,nodes:[inheritedNode,good.nodes[1]]});
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\n"),/missing own node fields/);
+});
+test("inherited optional grants never grant capability authority",()=>{
+ const graph=Object.assign(Object.create({grants:["clock","net.client"]}),{
+  schemaVersion:1,nodes:good.nodes,entry:"app",target:"browser",backend:"wasm"
+ });
+ const denied=check(graph);
+ assert.equal(denied.ok,false);
+ assert.match(denied.errors.join("\n"),/missing build grants/);
+ const explicit={...graph,grants:["clock","net.client"]};
+ assert.equal(check(explicit).ok,true);
+});
