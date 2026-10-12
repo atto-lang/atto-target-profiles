@@ -75,3 +75,42 @@ test("inherited optional grants never grant capability authority",()=>{
  const explicit={...graph,grants:["clock","net.client"]};
  assert.equal(check(explicit).ok,true);
 });
+
+
+test("accessor-backed grants are never executed or admitted",()=>{
+ let called=0;
+ const hostile={...good};
+ Object.defineProperty(hostile,"grants",{enumerable:true,get(){called++;return ["clock","net.client"]}});
+ const result=check(hostile);
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\\n"),/grants must be an own data property/);
+ assert.equal(called,0);
+});
+test("accessor-backed required graph and node fields fail before evaluation",()=>{
+ let called=0;
+ const hostile={...good};
+ Object.defineProperty(hostile,"nodes",{enumerable:true,get(){called++;return good.nodes}});
+ const graph=check(hostile);
+ assert.equal(graph.ok,false);
+ assert.match(graph.errors.join("\\n"),/missing resolved graph data property nodes/);
+ const node={...good.nodes[0]};
+ Object.defineProperty(node,"requires",{enumerable:true,get(){called++;return []}});
+ const result=check({...good,nodes:[node,good.nodes[1]]});
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\\n"),/missing own node fields requires/);
+ assert.equal(called,0);
+});
+test("accessor-backed profile capabilities and optional notes cannot execute",()=>{
+ let called=0;
+ const registry=profiles.map(p=>({...p}));
+ Object.defineProperty(registry[0],"capabilities",{enumerable:true,get(){called++;return []}});
+ const required=validateRegistry(registry);
+ assert.equal(required.ok,false);
+ assert.match(required.errors.join("\\n"),/missing own registry fields capabilities/);
+ const registry2=profiles.map(p=>({...p}));
+ Object.defineProperty(registry2[0],"notes",{enumerable:true,get(){called++;return "injected"}});
+ const optional=validateRegistry(registry2);
+ assert.equal(optional.ok,false);
+ assert.match(optional.errors.join("\\n"),/notes must be an own data property/);
+ assert.equal(called,0);
+});
