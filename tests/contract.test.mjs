@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {spawnSync} from "node:child_process";
-import {validateRegistry,validateClosure} from "../src/contract.mjs";
+import {readFile} from "node:fs/promises";
+import {validateRegistry,validateClosure,CAPABILITIES,ENVIRONMENTS,BACKENDS} from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
 const good={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:["clock","net.client"],nodes:[{id:"app",targets:["browser","server"],requires:["clock","net.client"],imports:["dep"]},{id:"dep",targets:["browser","server"],requires:["net.client"],imports:[]}]};
@@ -52,26 +53,160 @@ test("registry notes must match the JSON schema's string contract",()=>{
 });
 
 
-test("registry profiles must own all mandatory admission keys",()=>{
+test("registry profiles require own authorization declarations",()=>{
  const inherited=profiles.map(x=>({...x}));
  inherited[0]=Object.create(profiles[0]);
  const result=validateRegistry(inherited);
  assert.equal(result.ok,false);
  assert.match(result.errors.join("\n"),/missing own registry fields/);
 });
-test("graph nodes cannot inherit required capability declarations",()=>{
- const inheritedNode=Object.create(good.nodes[0]);
- const result=check({...good,nodes:[inheritedNode,good.nodes[1]]});
- assert.equal(result.ok,false);
- assert.match(result.errors.join("\n"),/missing own node fields/);
+test("graph nodes cannot inherit capabilities or identities",()=>{
+ const r=check({...good,nodes:[Object.create(good.nodes[0]),good.nodes[1]]});
+ assert.equal(r.ok,false);
+ assert.match(r.errors.join("\n"),/missing own node fields/);
 });
-test("inherited optional grants never grant capability authority",()=>{
+test("inherited optional build grants cannot authorize graph",()=>{
  const graph=Object.assign(Object.create({grants:["clock","net.client"]}),{
   schemaVersion:1,nodes:good.nodes,entry:"app",target:"browser",backend:"wasm"
  });
  const denied=check(graph);
  assert.equal(denied.ok,false);
  assert.match(denied.errors.join("\n"),/missing build grants/);
- const explicit={...graph,grants:["clock","net.client"]};
- assert.equal(check(explicit).ok,true);
+ assert.equal(check({...graph,grants:["clock","net.client"]}).ok,true);
+});
+test("sparse lists and inherited array slots fail closed",()=>{
+ const hole=Array(1);
+ for(const changed of [
+  {...good,grants:hole},
+  {...good,nodes:[{...good.nodes[0],requires:hole},good.nodes[1]]},
+  {...good,nodes:[{...good.nodes[0],imports:hole},good.nodes[1]]},
+  {...good,nodes:[{...good.nodes[0],targets:hole},good.nodes[1]]},
+ ])assert.equal(check(changed).ok,false);
+ const registry=profiles.map(x=>({...x}));
+ registry[0].capabilities=hole;
+ assert.equal(validateRegistry(registry).ok,false);
+ const inheritedIndex=Array(1);
+ const proto=Object.create(Array.prototype);
+ proto[0]="clock";
+ Object.setPrototypeOf(inheritedIndex,proto);
+ assert.equal(check({...good,grants:inheritedIndex}).ok,false);
+});
+
+test("method-shadowing grants cannot authorize ungranted dependency effects",()=>{
+ const grants=["clock"];
+ grants.includes=()=>true;
+ assert.equal(check({...good,grants}).ok,false);
+ const inheritedMethod=["clock"];
+ Object.setPrototypeOf(inheritedMethod,Object.assign(Object.create(Array.prototype),{includes:()=>true}));
+ assert.equal(check({...good,grants:inheritedMethod}).ok,false);
+});
+test("shadowed every cannot forge requirements or hide graph nodes",()=>{
+ const fakeRequires=["net.client"];
+ fakeRequires.every=()=>true;
+ const forged={...good,grants:["clock"],nodes:[
+  {...good.nodes[0],requires:fakeRequires,imports:[]}
+ ]};
+ assert.equal(check(forged).ok,false);
+ const nodes=[
+  {id:"app",targets:["browser"],requires:[],imports:[]},
+  {id:"hidden",targets:["server"],requires:["interop.java"],imports:[]}
+ ];
+ nodes.entries=function*(){yield [0,nodes[0]]};
+ assert.equal(check({...good,grants:[],nodes}).ok,false);
+});
+test("accessor-supplied authority cannot change across validation phases",()=>{
+ const grants=["clock"];Object.defineProperty(grants,"0",{get(){return "clock"},enumerable:true,configurable:true});
+ assert.equal(check({...good,grants}).ok,false);
+ const graph={...good};
+ Object.defineProperty(graph,"grants",{enumerable:true,get(){return ["clock","net.client"]}});
+ assert.equal(check(graph).ok,false);
+ const node={...good.nodes[0]};
+ Object.defineProperty(node,"requires",{enumerable:true,get(){return ["clock","net.client"]}});
+ assert.equal(check({...good,nodes:[node,good.nodes[1]]}).ok,false);
+});
+
+
+test("accessor-backed grants are never executed or admitted",()=>{
+ let called=0;
+ const hostile={...good};
+ Object.defineProperty(hostile,"grants",{enumerable:true,get(){called++;return ["clock","net.client"]}});
+ const result=check(hostile);
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\\n"),/resolved graph must be an object/);
+ assert.equal(called,0);
+});
+test("accessor-backed required graph and node fields fail before evaluation",()=>{
+ let called=0;
+ const hostile={...good};
+ Object.defineProperty(hostile,"nodes",{enumerable:true,get(){called++;return good.nodes}});
+ const graph=check(hostile);
+ assert.equal(graph.ok,false);
+ assert.match(graph.errors.join("\\n"),/resolved graph must be an object/);
+ const node={...good.nodes[0]};
+ Object.defineProperty(node,"requires",{enumerable:true,get(){called++;return []}});
+ const result=check({...good,nodes:[node,good.nodes[1]]});
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\\n"),/expected plain data object/);
+ assert.equal(called,0);
+});
+test("accessor-backed profile capabilities and optional notes cannot execute",()=>{
+ let called=0;
+ const registry=profiles.map(p=>({...p}));
+ Object.defineProperty(registry[0],"capabilities",{enumerable:true,get(){called++;return []}});
+ const required=validateRegistry(registry);
+ assert.equal(required.ok,false);
+ assert.match(required.errors.join("\\n"),/expected plain data object/);
+ const registry2=profiles.map(p=>({...p}));
+ Object.defineProperty(registry2[0],"notes",{enumerable:true,get(){called++;return "injected"}});
+ const optional=validateRegistry(registry2);
+ assert.equal(optional.ok,false);
+ assert.match(optional.errors.join("\\n"),/expected plain data object/);
+ assert.equal(called,0);
+});
+
+
+test("malformed symbol and hostile graph selectors reject without coercion",()=>{
+ const neverCoerce={toString(){throw Error("selector coerced")},valueOf(){throw Error("selector coerced")}};
+ for(const change of [
+  {entry:Symbol("app")},{entry:neverCoerce},
+  {target:Symbol("browser")},{target:neverCoerce},
+  {backend:Symbol("wasm")},{backend:neverCoerce}
+ ]){
+  const response=check({...good,...change});
+  assert.equal(response.ok,false,JSON.stringify(Object.keys(change)));
+  assert.ok(response.errors.length>0);
+ }
+});
+
+
+test("NUL in graph entry is rejected independently from missing map identity",()=>{
+ const invalid=check({...good,entry:"app"+String.fromCharCode(0)});
+ assert.equal(invalid.ok,false);
+ assert.match(invalid.errors.join("\\n"),/invalid resolved graph entry/);
+});
+
+
+test("resolved-closure JSON Schema 2020-12 vocabulary is pinned to runtime admission",async()=>{
+ const schema=JSON.parse(await readFile(new URL("../schemas/resolved-closure.schema.json",import.meta.url),"utf8"));
+ assert.equal(schema.$schema,"https://json-schema.org/draft/2020-12/schema");
+ assert.equal(schema.type,"object");
+ assert.equal(schema.additionalProperties,false);
+ assert.deepEqual(schema.required.sort(),["schemaVersion","nodes","entry","target","backend"].sort());
+ assert.deepEqual(schema.$defs.environment.enum,ENVIRONMENTS);
+ assert.deepEqual(schema.$defs.backend.enum,BACKENDS);
+ assert.deepEqual(schema.$defs.capability.enum,CAPABILITIES);
+ assert.equal(schema.properties.nodes.maxItems,4096);
+ assert.equal(schema.properties.nodes.minItems,1);
+ assert.equal(schema.$defs.node.additionalProperties,false);
+ assert.deepEqual(schema.$defs.node.required.sort(),["id","targets","requires","imports"].sort());
+ assert.equal(schema.$defs.node.properties.imports.maxItems,256);
+ assert.equal(schema.$defs.unitId.maxLength,512);
+ assert.equal(new RegExp(schema.$defs.unitId.pattern).test("app"+String.fromCharCode(0)),false);
+ assert.equal(new RegExp(schema.$defs.unitId.pattern).test("app"),true);
+ assert.equal(schema.properties.grants.uniqueItems,true);
+ for(const key of ["targets","requires","imports"])
+  assert.equal(schema.$defs.node.properties[key].uniqueItems,true);
+ // The schema describes shape; the runtime still checks graph edges,
+ // transitive effects and that all declared nodes are reachable.
+ assert.equal(validateClosure(good,profiles).ok,true);
 });
