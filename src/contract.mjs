@@ -3,20 +3,29 @@ export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js
 export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex","c","bytecode"]);
 const unique = a => Array.isArray(a) && a.every((x,i) => typeof x === "string" && x.length>0 && a.indexOf(x)===i);
 const subset = (a,b) => a.every(x=>b.includes(x));
+// Object.hasOwn alone admits accessor properties. Build authority must come
+// from concrete data properties, never getter execution during validation.
+const ownData = (object,key) => {
+ const descriptor=Object.getOwnPropertyDescriptor(object,key);
+ return descriptor!==undefined && Object.hasOwn(descriptor,"value");
+};
 export function validateRegistry(profiles) {
   const errors=[],seen=new Set();
   if (!Array.isArray(profiles)) return {ok:false,errors:["registry must be an array"]};
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
     if (!p || typeof p!=="object" || Array.isArray(p)) {errors.push(at+": expected object");continue}
-    const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
+    const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!ownData(p,k));
     if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
     if (seen.has(p.name)) errors.push(at+": duplicate environment "+p.name);
     seen.add(p.name);
     if (!unique(p.backends)||p.backends.length===0||!subset(p.backends,BACKENDS)) errors.push(at+": invalid backends");
     if (!unique(p.capabilities)||!subset(p.capabilities,CAPABILITIES)) errors.push(at+": invalid capabilities");
-    if (p.notes!==undefined && typeof p.notes!=="string") errors.push(at+": notes must be a string");
+    const notes=Object.getOwnPropertyDescriptor(p,"notes");
+    if(notes&&!Object.hasOwn(notes,"value")) errors.push(at+": notes must be an own data property");
+    else if(notes&&notes.value!==undefined&&typeof notes.value!=="string")
+      errors.push(at+": notes must be a string");
     for (const k of Object.keys(p)) if (!["schemaVersion","name","backends","capabilities","notes"].includes(k)) errors.push(at+": unknown property "+k);
   }
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
@@ -30,11 +39,15 @@ export function validateClosure(input,profiles) {
   for(const field of Object.keys(input))
     if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
-    if(!Object.hasOwn(input,field))errors.push("missing resolved graph property "+field);
+    if(!ownData(input,field))errors.push("missing resolved graph data property "+field);
+  const grantDescriptor=Object.getOwnPropertyDescriptor(input,"grants");
+  if(grantDescriptor&&!Object.hasOwn(grantDescriptor,"value"))
+    errors.push("grants must be an own data property");
+  // Reject invalid required fields and getters before evaluating any fields.
+  if(errors.length)return {ok:false,errors};
   const {schemaVersion,nodes,entry,target,backend}=input;
-  // Omitted optional grants mean none. Never inherit authority through a
-  // modified prototype or an object created by Object.create(otherGraph).
-  const grants=Object.hasOwn(input,"grants")?input.grants:[];
+  // Missing optional grants grant nothing; inherited grants are ignored.
+  const grants=grantDescriptor?grantDescriptor.value:[];
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
   if(typeof backend!=="string"||!BACKENDS.includes(backend))errors.push("missing or unknown backend");
   const registry=validateRegistry(profiles);
@@ -50,7 +63,7 @@ export function validateClosure(input,profiles) {
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
     if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
-    const missing=["id","targets","requires","imports"].filter(k=>!Object.hasOwn(node,k));
+    const missing=["id","targets","requires","imports"].filter(k=>!ownData(node,k));
     if(missing.length){errors.push(at+": missing own node fields "+missing.join(","));continue}
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
     if(ids.has(node.id))errors.push(at+": duplicate id "+node.id);
