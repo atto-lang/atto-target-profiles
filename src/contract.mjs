@@ -77,6 +77,14 @@ export function validateClosure(input,profiles) {
   // Invalid/missing required data cannot be read from inherited getters.
   if(errors.length)return {ok:false,errors};
   const {schemaVersion,nodes,entry,target,backend}=input;
+  // Reject non-string graph selectors before they enter diagnostics,
+  // string concatenation or map lookups. Symbol-valued selectors previously
+  // threw TypeError instead of returning a fail-closed validation result.
+  if(typeof entry!=="string"||entry.length===0||entry.length>512||
+     entry.includes("\\u0000"))errors.push("invalid resolved graph entry");
+  if(typeof target!=="string")errors.push("invalid resolved graph target");
+  if(typeof backend!=="string")errors.push("missing or unknown backend");
+  if(errors.length)return {ok:false,errors};
   // Optional authority must never be inherited through a prototype chain.
   const grants=Object.hasOwn(input,"grants")?input.grants:[];
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
