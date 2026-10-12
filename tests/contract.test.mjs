@@ -90,3 +90,36 @@ test("sparse lists and inherited array slots fail closed",()=>{
  Object.setPrototypeOf(inheritedIndex,proto);
  assert.equal(check({...good,grants:inheritedIndex}).ok,false);
 });
+
+test("method-shadowing grants cannot authorize ungranted dependency effects",()=>{
+ const grants=["clock"];
+ grants.includes=()=>true;
+ assert.equal(check({...good,grants}).ok,false);
+ const inheritedMethod=["clock"];
+ Object.setPrototypeOf(inheritedMethod,Object.assign(Object.create(Array.prototype),{includes:()=>true}));
+ assert.equal(check({...good,grants:inheritedMethod}).ok,false);
+});
+test("shadowed every cannot forge requirements or hide graph nodes",()=>{
+ const fakeRequires=["net.client"];
+ fakeRequires.every=()=>true;
+ const forged={...good,grants:["clock"],nodes:[
+  {...good.nodes[0],requires:fakeRequires,imports:[]}
+ ]};
+ assert.equal(check(forged).ok,false);
+ const nodes=[
+  {id:"app",targets:["browser"],requires:[],imports:[]},
+  {id:"hidden",targets:["server"],requires:["interop.java"],imports:[]}
+ ];
+ nodes.entries=function*(){yield [0,nodes[0]]};
+ assert.equal(check({...good,grants:[],nodes}).ok,false);
+});
+test("accessor-supplied authority cannot change across validation phases",()=>{
+ const grants=["clock"];Object.defineProperty(grants,"0",{get(){return "clock"},enumerable:true,configurable:true});
+ assert.equal(check({...good,grants}).ok,false);
+ const graph={...good};
+ Object.defineProperty(graph,"grants",{enumerable:true,get(){return ["clock","net.client"]}});
+ assert.equal(check(graph).ok,false);
+ const node={...good.nodes[0]};
+ Object.defineProperty(node,"requires",{enumerable:true,get(){return ["clock","net.client"]}});
+ assert.equal(check({...good,nodes:[node,good.nodes[1]]}).ok,false);
+});
