@@ -14,13 +14,22 @@ export function validateRegistry(profiles) {
     seen.add(p.name);
     if (!unique(p.backends)||p.backends.length===0||!subset(p.backends,BACKENDS)) errors.push(at+": invalid backends");
     if (!unique(p.capabilities)||!subset(p.capabilities,CAPABILITIES)) errors.push(at+": invalid capabilities");
+    if (p.notes!==undefined && typeof p.notes!=="string") errors.push(at+": notes must be a string");
     for (const k of Object.keys(p)) if (!["schemaVersion","name","backends","capabilities","notes"].includes(k)) errors.push(at+": unknown property "+k);
   }
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
 }
-export function validateClosure({schemaVersion,nodes,entry,target,backend,grants=[]},profiles) {
+export function validateClosure(input,profiles) {
   const errors=[];
+  if(!input||typeof input!=="object"||Array.isArray(input))
+    return {ok:false,errors:["resolved graph must be an object"]};
+  const keys=["schemaVersion","nodes","entry","target","backend","grants"];
+  for(const field of Object.keys(input))
+    if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
+  for(const field of ["schemaVersion","nodes","entry","target","backend"])
+    if(!Object.hasOwn(input,field))errors.push("missing resolved graph property "+field);
+  const {schemaVersion,nodes,entry,target,backend,grants=[]}=input;
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
   if(typeof backend!=="string"||!BACKENDS.includes(backend))errors.push("missing or unknown backend");
   const registry=validateRegistry(profiles);

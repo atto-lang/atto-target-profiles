@@ -32,3 +32,21 @@ test("oversized graph and excessive fanout are refused",()=>{
  assert.match(check({...good,nodes:Array.from({length:4097},(_,i)=>({id:"unit"+i,targets:["browser"],requires:[],imports:[]}))}).errors.join("\n"),/4096/);
  assert.match(check({...good,nodes:[{...good.nodes[0],imports:Array.from({length:257},(_,i)=>"x"+i)},good.nodes[1]]}).errors.join("\n"),/excessive/);
 });
+
+test("invalid top-level closures fail closed without throwing",()=>{
+ for(const invalid of [null,undefined,17,"graph",[],{}]){
+  const r=check(invalid);
+  assert.equal(r.ok,false);
+  assert.ok(r.errors.length>0);
+ }
+});
+test("unknown fields and inherited missing required fields fail closed",()=>{
+ assert.match(check({...good,unreviewedEffects:["fs.write"]}).errors.join("\\n"),/unknown resolved graph property/);
+ const inherited=Object.create(good);
+ assert.match(check(inherited).errors.join("\\n"),/missing resolved graph property/);
+});
+test("registry notes must match the JSON schema's string contract",()=>{
+ const altered=profiles.map(x=>({...x}));
+ altered[0].notes={unsafe:"nonstring"};
+ assert.match(validateRegistry(altered).errors.join("\\n"),/notes must be a string/);
+});
