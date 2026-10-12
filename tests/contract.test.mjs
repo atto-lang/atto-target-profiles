@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {spawnSync} from "node:child_process";
-import {validateRegistry,validateClosure} from "../src/contract.mjs";
+import {readFile} from "node:fs/promises";
+import {validateRegistry,validateClosure,CAPABILITIES,ENVIRONMENTS,BACKENDS} from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
 const good={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:["clock","net.client"],nodes:[{id:"app",targets:["browser","server"],requires:["clock","net.client"],imports:["dep"]},{id:"dep",targets:["browser","server"],requires:["net.client"],imports:[]}]};
@@ -182,4 +183,30 @@ test("NUL in graph entry is rejected independently from missing map identity",()
  const invalid=check({...good,entry:"app"+String.fromCharCode(0)});
  assert.equal(invalid.ok,false);
  assert.match(invalid.errors.join("\\n"),/invalid resolved graph entry/);
+});
+
+
+test("resolved-closure JSON Schema 2020-12 vocabulary is pinned to runtime admission",async()=>{
+ const schema=JSON.parse(await readFile(new URL("../schemas/resolved-closure.schema.json",import.meta.url),"utf8"));
+ assert.equal(schema.$schema,"https://json-schema.org/draft/2020-12/schema");
+ assert.equal(schema.type,"object");
+ assert.equal(schema.additionalProperties,false);
+ assert.deepEqual(schema.required.sort(),["schemaVersion","nodes","entry","target","backend"].sort());
+ assert.deepEqual(schema.$defs.environment.enum,ENVIRONMENTS);
+ assert.deepEqual(schema.$defs.backend.enum,BACKENDS);
+ assert.deepEqual(schema.$defs.capability.enum,CAPABILITIES);
+ assert.equal(schema.properties.nodes.maxItems,4096);
+ assert.equal(schema.properties.nodes.minItems,1);
+ assert.equal(schema.$defs.node.additionalProperties,false);
+ assert.deepEqual(schema.$defs.node.required.sort(),["id","targets","requires","imports"].sort());
+ assert.equal(schema.$defs.node.properties.imports.maxItems,256);
+ assert.equal(schema.$defs.unitId.maxLength,512);
+ assert.equal(new RegExp(schema.$defs.unitId.pattern).test("app"+String.fromCharCode(0)),false);
+ assert.equal(new RegExp(schema.$defs.unitId.pattern).test("app"),true);
+ assert.equal(schema.properties.grants.uniqueItems,true);
+ for(const key of ["targets","requires","imports"])
+  assert.equal(schema.$defs.node.properties[key].uniqueItems,true);
+ // The schema describes shape; the runtime still checks graph edges,
+ // transitive effects and that all declared nodes are reachable.
+ assert.equal(validateClosure(good,profiles).ok,true);
 });
