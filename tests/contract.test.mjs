@@ -92,7 +92,7 @@ test("accessor-backed required graph and node fields fail before evaluation",()=
  Object.defineProperty(hostile,"nodes",{enumerable:true,get(){called++;return good.nodes}});
  const graph=check(hostile);
  assert.equal(graph.ok,false);
- assert.match(graph.errors.join("\\n"),/missing resolved graph data property nodes/);
+ assert.match(graph.errors.join("\\n"),/missing resolved graph property nodes/);
  const node={...good.nodes[0]};
  Object.defineProperty(node,"requires",{enumerable:true,get(){called++;return []}});
  const result=check({...good,nodes:[node,good.nodes[1]]});
