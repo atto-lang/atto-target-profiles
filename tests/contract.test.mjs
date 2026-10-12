@@ -162,3 +162,17 @@ test("accessor-backed profile capabilities and optional notes cannot execute",()
  assert.match(optional.errors.join("\\n"),/expected plain data object/);
  assert.equal(called,0);
 });
+
+
+test("malformed symbol and hostile graph selectors reject without coercion",()=>{
+ const neverCoerce={toString(){throw Error("selector coerced")},valueOf(){throw Error("selector coerced")}};
+ for(const change of [
+  {entry:Symbol("app")},{entry:neverCoerce},
+  {target:Symbol("browser")},{target:neverCoerce},
+  {backend:Symbol("wasm")},{backend:neverCoerce}
+ ]){
+  const response=check({...good,...change});
+  assert.equal(response.ok,false,JSON.stringify(Object.keys(change)));
+  assert.ok(response.errors.length>0);
+ }
+});
