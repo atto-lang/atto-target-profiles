@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ores-truffle-oreslang.github.io/contracts/resolved-closure-v1.schema.json",
+  "$id": "urn:oreslang:target-profiles:resolved-closure:v1",
   "title": "Oreslang Resolved Target Closure v1",
   "description": "Structural shape of a compiler-resolved closure. Semantic admission (edge target coverage, transitive capabilities, no unreachable units) MUST additionally run validateClosure.",
   "type": "object",
