@@ -52,28 +52,76 @@ test("registry notes must match the JSON schema's string contract",()=>{
 });
 
 
-test("registry profiles must own all mandatory admission keys",()=>{
+test("registry profiles require own authorization declarations",()=>{
  const inherited=profiles.map(x=>({...x}));
  inherited[0]=Object.create(profiles[0]);
  const result=validateRegistry(inherited);
  assert.equal(result.ok,false);
  assert.match(result.errors.join("\n"),/missing own registry fields/);
 });
-test("graph nodes cannot inherit required capability declarations",()=>{
- const inheritedNode=Object.create(good.nodes[0]);
- const result=check({...good,nodes:[inheritedNode,good.nodes[1]]});
- assert.equal(result.ok,false);
- assert.match(result.errors.join("\n"),/missing own node fields/);
+test("graph nodes cannot inherit capabilities or identities",()=>{
+ const r=check({...good,nodes:[Object.create(good.nodes[0]),good.nodes[1]]});
+ assert.equal(r.ok,false);
+ assert.match(r.errors.join("\n"),/missing own node fields/);
 });
-test("inherited optional grants never grant capability authority",()=>{
+test("inherited optional build grants cannot authorize graph",()=>{
  const graph=Object.assign(Object.create({grants:["clock","net.client"]}),{
   schemaVersion:1,nodes:good.nodes,entry:"app",target:"browser",backend:"wasm"
  });
  const denied=check(graph);
  assert.equal(denied.ok,false);
  assert.match(denied.errors.join("\n"),/missing build grants/);
- const explicit={...graph,grants:["clock","net.client"]};
- assert.equal(check(explicit).ok,true);
+ assert.equal(check({...graph,grants:["clock","net.client"]}).ok,true);
+});
+test("sparse lists and inherited array slots fail closed",()=>{
+ const hole=Array(1);
+ for(const changed of [
+  {...good,grants:hole},
+  {...good,nodes:[{...good.nodes[0],requires:hole},good.nodes[1]]},
+  {...good,nodes:[{...good.nodes[0],imports:hole},good.nodes[1]]},
+  {...good,nodes:[{...good.nodes[0],targets:hole},good.nodes[1]]},
+ ])assert.equal(check(changed).ok,false);
+ const registry=profiles.map(x=>({...x}));
+ registry[0].capabilities=hole;
+ assert.equal(validateRegistry(registry).ok,false);
+ const inheritedIndex=Array(1);
+ const proto=Object.create(Array.prototype);
+ proto[0]="clock";
+ Object.setPrototypeOf(inheritedIndex,proto);
+ assert.equal(check({...good,grants:inheritedIndex}).ok,false);
+});
+
+test("method-shadowing grants cannot authorize ungranted dependency effects",()=>{
+ const grants=["clock"];
+ grants.includes=()=>true;
+ assert.equal(check({...good,grants}).ok,false);
+ const inheritedMethod=["clock"];
+ Object.setPrototypeOf(inheritedMethod,Object.assign(Object.create(Array.prototype),{includes:()=>true}));
+ assert.equal(check({...good,grants:inheritedMethod}).ok,false);
+});
+test("shadowed every cannot forge requirements or hide graph nodes",()=>{
+ const fakeRequires=["net.client"];
+ fakeRequires.every=()=>true;
+ const forged={...good,grants:["clock"],nodes:[
+  {...good.nodes[0],requires:fakeRequires,imports:[]}
+ ]};
+ assert.equal(check(forged).ok,false);
+ const nodes=[
+  {id:"app",targets:["browser"],requires:[],imports:[]},
+  {id:"hidden",targets:["server"],requires:["interop.java"],imports:[]}
+ ];
+ nodes.entries=function*(){yield [0,nodes[0]]};
+ assert.equal(check({...good,grants:[],nodes}).ok,false);
+});
+test("accessor-supplied authority cannot change across validation phases",()=>{
+ const grants=["clock"];Object.defineProperty(grants,"0",{get(){return "clock"},enumerable:true,configurable:true});
+ assert.equal(check({...good,grants}).ok,false);
+ const graph={...good};
+ Object.defineProperty(graph,"grants",{enumerable:true,get(){return ["clock","net.client"]}});
+ assert.equal(check(graph).ok,false);
+ const node={...good.nodes[0]};
+ Object.defineProperty(node,"requires",{enumerable:true,get(){return ["clock","net.client"]}});
+ assert.equal(check({...good,nodes:[node,good.nodes[1]]}).ok,false);
 });
 
 
@@ -83,7 +131,7 @@ test("accessor-backed grants are never executed or admitted",()=>{
  Object.defineProperty(hostile,"grants",{enumerable:true,get(){called++;return ["clock","net.client"]}});
  const result=check(hostile);
  assert.equal(result.ok,false);
- assert.match(result.errors.join("\\n"),/grants must be an own data property/);
+ assert.match(result.errors.join("\\n"),/resolved graph must be an object/);
  assert.equal(called,0);
 });
 test("accessor-backed required graph and node fields fail before evaluation",()=>{
@@ -92,12 +140,12 @@ test("accessor-backed required graph and node fields fail before evaluation",()=
  Object.defineProperty(hostile,"nodes",{enumerable:true,get(){called++;return good.nodes}});
  const graph=check(hostile);
  assert.equal(graph.ok,false);
- assert.match(graph.errors.join("\\n"),/missing resolved graph property nodes/);
+ assert.match(graph.errors.join("\\n"),/resolved graph must be an object/);
  const node={...good.nodes[0]};
  Object.defineProperty(node,"requires",{enumerable:true,get(){called++;return []}});
  const result=check({...good,nodes:[node,good.nodes[1]]});
  assert.equal(result.ok,false);
- assert.match(result.errors.join("\\n"),/missing own node fields requires/);
+ assert.match(result.errors.join("\\n"),/expected plain data object/);
  assert.equal(called,0);
 });
 test("accessor-backed profile capabilities and optional notes cannot execute",()=>{
@@ -106,11 +154,11 @@ test("accessor-backed profile capabilities and optional notes cannot execute",()
  Object.defineProperty(registry[0],"capabilities",{enumerable:true,get(){called++;return []}});
  const required=validateRegistry(registry);
  assert.equal(required.ok,false);
- assert.match(required.errors.join("\\n"),/missing own registry fields capabilities/);
+ assert.match(required.errors.join("\\n"),/expected plain data object/);
  const registry2=profiles.map(p=>({...p}));
  Object.defineProperty(registry2[0],"notes",{enumerable:true,get(){called++;return "injected"}});
  const optional=validateRegistry(registry2);
  assert.equal(optional.ok,false);
- assert.match(optional.errors.join("\\n"),/notes must be an own data property/);
+ assert.match(optional.errors.join("\\n"),/expected plain data object/);
  assert.equal(called,0);
 });
