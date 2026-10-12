@@ -81,7 +81,7 @@ export function validateClosure(input,profiles) {
   // string concatenation or map lookups. Symbol-valued selectors previously
   // threw TypeError instead of returning a fail-closed validation result.
   if(typeof entry!=="string"||entry.length===0||entry.length>512||
-     entry.includes("\\u0000"))errors.push("invalid resolved graph entry");
+     entry.includes("\u0000"))errors.push("invalid resolved graph entry");
   if(typeof target!=="string")errors.push("invalid resolved graph target");
   if(typeof backend!=="string")errors.push("missing or unknown backend");
   if(errors.length)return {ok:false,errors};
