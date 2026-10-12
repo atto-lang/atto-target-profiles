@@ -176,3 +176,10 @@ test("malformed symbol and hostile graph selectors reject without coercion",()=>
   assert.ok(response.errors.length>0);
  }
 });
+
+
+test("NUL in graph entry is rejected independently from missing map identity",()=>{
+ const invalid=check({...good,entry:"app\\u0000"});
+ assert.equal(invalid.ok,false);
+ assert.match(invalid.errors.join("\\n"),/invalid resolved graph entry/);
+});
