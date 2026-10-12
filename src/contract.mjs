@@ -39,7 +39,7 @@ export function validateClosure(input,profiles) {
   for(const field of Object.keys(input))
     if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
-    if(!ownData(input,field))errors.push("missing resolved graph data property "+field);
+    if(!ownData(input,field))errors.push("missing resolved graph property "+field);
   const grantDescriptor=Object.getOwnPropertyDescriptor(input,"grants");
   if(grantDescriptor&&!Object.hasOwn(grantDescriptor,"value"))
     errors.push("grants must be an own data property");
