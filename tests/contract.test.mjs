@@ -50,3 +50,43 @@ test("registry notes must match the JSON schema's string contract",()=>{
  altered[0].notes={unsafe:"nonstring"};
  assert.match(validateRegistry(altered).errors.join("\\n"),/notes must be a string/);
 });
+
+
+test("registry profiles require own authorization declarations",()=>{
+ const inherited=profiles.map(x=>({...x}));
+ inherited[0]=Object.create(profiles[0]);
+ const result=validateRegistry(inherited);
+ assert.equal(result.ok,false);
+ assert.match(result.errors.join("\n"),/missing own registry fields/);
+});
+test("graph nodes cannot inherit capabilities or identities",()=>{
+ const r=check({...good,nodes:[Object.create(good.nodes[0]),good.nodes[1]]});
+ assert.equal(r.ok,false);
+ assert.match(r.errors.join("\n"),/missing own node fields/);
+});
+test("inherited optional build grants cannot authorize graph",()=>{
+ const graph=Object.assign(Object.create({grants:["clock","net.client"]}),{
+  schemaVersion:1,nodes:good.nodes,entry:"app",target:"browser",backend:"wasm"
+ });
+ const denied=check(graph);
+ assert.equal(denied.ok,false);
+ assert.match(denied.errors.join("\n"),/missing build grants/);
+ assert.equal(check({...graph,grants:["clock","net.client"]}).ok,true);
+});
+test("sparse lists and inherited array slots fail closed",()=>{
+ const hole=Array(1);
+ for(const changed of [
+  {...good,grants:hole},
+  {...good,nodes:[{...good.nodes[0],requires:hole},good.nodes[1]]},
+  {...good,nodes:[{...good.nodes[0],imports:hole},good.nodes[1]]},
+  {...good,nodes:[{...good.nodes[0],targets:hole},good.nodes[1]]},
+ ])assert.equal(check(changed).ok,false);
+ const registry=profiles.map(x=>({...x}));
+ registry[0].capabilities=hole;
+ assert.equal(validateRegistry(registry).ok,false);
+ const inheritedIndex=Array(1);
+ const proto=Object.create(Array.prototype);
+ proto[0]="clock";
+ Object.setPrototypeOf(inheritedIndex,proto);
+ assert.equal(check({...good,grants:inheritedIndex}).ok,false);
+});
