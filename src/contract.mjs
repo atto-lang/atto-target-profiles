@@ -8,13 +8,18 @@ export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex",
 // In particular, allow no shadowed includes/every/entries, custom prototypes
 // or sparse slots: all can subvert policy checks despite a correct length.
 const ownDenseArray=(a,max=4096)=>{
-  if(!Array.isArray(a)||Object.getPrototypeOf(a)!==Array.prototype||a.length>max)return false;
-  if(Reflect.ownKeys(a).length!==a.length+1)return false;
-  for(let i=0;i<a.length;i++){
-    const slot=Object.getOwnPropertyDescriptor(a,String(i));
-    if(!slot||!Object.hasOwn(slot,'value'))return false;
+  try{
+    if(!Array.isArray(a)||Object.getPrototypeOf(a)!==Array.prototype||a.length>max)return false;
+    if(Reflect.ownKeys(a).length!==a.length+1)return false;
+    for(let i=0;i<a.length;i++){
+      const slot=Object.getOwnPropertyDescriptor(a,String(i));
+      if(!slot||!Object.hasOwn(slot,'value'))return false;
+    }
+    return true;
+  }catch{
+    // A revoked or hostile Proxy cannot become an authority-bearing array.
+    return false;
   }
-  return true;
 };
 const dataOnly=o=>{
   // A graph authority record is JSON-like data, never a class instance,
@@ -58,7 +63,7 @@ export function validateRegistry(profiles) {
   if (!ownDenseArray(profiles)) return {ok:false,errors:["registry must be a dense own-indexed array"]};
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
-    if (!p || typeof p!=="object" || Array.isArray(p) || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
+    if (!p || typeof p!=="object" || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
     const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
     if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
@@ -78,7 +83,7 @@ export function validateRegistry(profiles) {
 }
 export function validateClosure(input,profiles) {
   const errors=[];
-  if(!input||typeof input!=="object"||Array.isArray(input)||!dataOnly(input))
+  if(!input||typeof input!=="object"||!dataOnly(input))
     return {ok:false,errors:["resolved graph must be an object"]};
   const keys=["schemaVersion","nodes","entry","target","backend","grants"];
   for(const field of Object.keys(input))
@@ -113,7 +118,7 @@ export function validateClosure(input,profiles) {
   const ids=new Map();
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
-    if(!node||typeof node!=="object"||Array.isArray(node)||!dataOnly(node)){errors.push(at+": expected plain data object");continue}
+    if(!node||typeof node!=="object"||!dataOnly(node)){errors.push(at+": expected plain data object");continue}
     const missing=["id","targets","requires","imports"].filter(k=>!Object.hasOwn(node,k));
     if(missing.length){errors.push(at+": missing own node fields "+missing.join(","));continue}
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
