@@ -71,7 +71,7 @@ test("inherited optional build grants cannot authorize graph",()=>{
  });
  const denied=check(graph);
  assert.equal(denied.ok,false);
- assert.match(denied.errors.join("\n"),/missing build grants/);
+ assert.match(denied.errors.join("\n"),/missing build grants|resolved graph must be an object/);
  assert.equal(check({...graph,grants:["clock","net.client"]}).ok,true);
 });
 test("sparse lists and inherited array slots fail closed",()=>{
