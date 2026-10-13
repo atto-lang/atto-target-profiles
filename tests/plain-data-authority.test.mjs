@@ -78,3 +78,28 @@ test("revoked authority-bearing arrays reject cleanly instead of throwing",()=>{
    assert.equal(result.ok,false);
  });
 });
+
+test("transparent and hostile proxy policy records reject before any getter trap",()=>{
+ let reads=0;
+ const trap={get(target,key,receiver){reads++;return Reflect.get(target,key,receiver)}};
+ for(const policy of [
+   new Proxy({...base},trap),
+   {...base,nodes:[new Proxy({...base.nodes[0]},trap)]},
+   {...base,grants:new Proxy(["clock"],trap)},
+   {...base,nodes:new Proxy([...base.nodes],trap)}
+ ]) {
+   assert.equal(validateClosure(policy,registry).ok,false);
+ }
+ const reg=[...registry];
+ reg[0]=new Proxy({...registry[0]},trap);
+ assert.equal(validateRegistry(reg).ok,false);
+ assert.equal(reads,0,"policy inspection must not invoke a user-defined getter trap");
+});
+
+test("revoked nodes array rejects before length access",()=>{
+ const nodes=Proxy.revocable([...base.nodes],{});
+ nodes.revoke();
+ assert.doesNotThrow(()=>{
+   assert.equal(validateClosure({...base,nodes:nodes.proxy},registry).ok,false);
+ });
+});
