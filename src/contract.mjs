@@ -16,7 +16,11 @@ const ownDenseArray=(a,max=4096)=>{
   }
   return true;
 };
+// Pure JSON object shape: permit ordinary and null-prototype dictionaries,
+// but never grant admission to objects with caller-controlled inherited fields.
 const dataOnly=o=>{
+  const prototype=Object.getPrototypeOf(o);
+  if(prototype!==Object.prototype && prototype!==null)return false;
   for(const key of Reflect.ownKeys(o)){
     if(typeof key!=="string")return false;
     const descriptor=Object.getOwnPropertyDescriptor(o,key);
