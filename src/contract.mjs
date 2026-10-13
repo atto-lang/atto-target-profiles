@@ -17,12 +17,23 @@ const ownDenseArray=(a,max=4096)=>{
   return true;
 };
 const dataOnly=o=>{
-  for(const key of Reflect.ownKeys(o)){
-    if(typeof key!=="string")return false;
-    const descriptor=Object.getOwnPropertyDescriptor(o,key);
-    if(!descriptor||!Object.hasOwn(descriptor,"value"))return false;
+  // A graph authority record is JSON-like data, never a class instance,
+  // object with a custom prototype or an object with accessor properties.
+  // Custom prototypes can introduce inherited policy behavior *after* this
+  // validator returns, even when its immediate own fields looked valid.
+  try {
+    const prototype=Object.getPrototypeOf(o);
+    if(prototype!==Object.prototype&&prototype!==null)return false;
+    for(const key of Reflect.ownKeys(o)){
+      if(typeof key!=="string")return false;
+      const descriptor=Object.getOwnPropertyDescriptor(o,key);
+      if(!descriptor||!Object.hasOwn(descriptor,"value"))return false;
+    }
+    return true;
+  }catch{
+    // E.g. a revoked Proxy: fail closed without throwing out of admission.
+    return false;
   }
-  return true;
 };
 const unique = a => {
   if(!ownDenseArray(a))return false;
