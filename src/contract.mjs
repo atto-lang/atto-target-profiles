@@ -1,37 +1,92 @@
 export const CAPABILITIES = Object.freeze(["clock","random","net.client","net.server","fs.read","fs.write","threads","interop.java","interop.native","device.camera","device.gpio","dynamic.code","heap","gc"]);
 export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js","edge-wasi","ios","android","embedded"]);
 export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex","c","bytecode"]);
-const unique = a => Array.isArray(a) && a.every((x,i) => typeof x === "string" && x.length>0 && a.indexOf(x)===i);
-const subset = (a,b) => a.every(x=>b.includes(x));
+// Authority-bearing lists must be dense, own-indexed, unique JSON-like arrays.
+// Array#every skips holes, and inherited numeric entries can otherwise mask
+// absent capabilities/targets, making a malformed build graph appear valid.
+// JSON-like authority arrays must have ONLY own, non-accessor numeric slots.
+// In particular, allow no shadowed includes/every/entries, custom prototypes
+// or sparse slots: all can subvert policy checks despite a correct length.
+const ownDenseArray=(a,max=4096)=>{
+  if(!Array.isArray(a)||Object.getPrototypeOf(a)!==Array.prototype||a.length>max)return false;
+  if(Reflect.ownKeys(a).length!==a.length+1)return false;
+  for(let i=0;i<a.length;i++){
+    const slot=Object.getOwnPropertyDescriptor(a,String(i));
+    if(!slot||!Object.hasOwn(slot,'value'))return false;
+  }
+  return true;
+};
+const dataOnly=o=>{
+  for(const key of Reflect.ownKeys(o)){
+    if(typeof key!=="string")return false;
+    const descriptor=Object.getOwnPropertyDescriptor(o,key);
+    if(!descriptor||!Object.hasOwn(descriptor,"value"))return false;
+  }
+  return true;
+};
+const unique = a => {
+  if(!ownDenseArray(a))return false;
+  const seen=new Set();
+  for(let i=0;i<a.length;i++){
+    const x=a[i];
+    if(typeof x!=='string'||x.length===0||seen.has(x))return false;
+    seen.add(x);
+  }
+  return true;
+};
+// Never dispatch policy checks through caller-controlled array methods.
+const subset=(a,b)=>{
+  const allowed=new Set();
+  for(let i=0;i<b.length;i++)allowed.add(b[i]);
+  for(let i=0;i<a.length;i++)if(!allowed.has(a[i]))return false;
+  return true;
+};
+
 export function validateRegistry(profiles) {
   const errors=[],seen=new Set();
-  if (!Array.isArray(profiles)) return {ok:false,errors:["registry must be an array"]};
+  if (!ownDenseArray(profiles)) return {ok:false,errors:["registry must be a dense own-indexed array"]};
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
-    if (!p || typeof p!=="object" || Array.isArray(p)) {errors.push(at+": expected object");continue}
-    for(const field of ["schemaVersion","name","backends","capabilities"])
-      if(!Object.hasOwn(p,field))errors.push(at+": missing own "+field);
+    if (!p || typeof p!=="object" || Array.isArray(p) || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
+    const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
+    if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
     if (seen.has(p.name)) errors.push(at+": duplicate environment "+p.name);
     seen.add(p.name);
     if (!unique(p.backends)||p.backends.length===0||!subset(p.backends,BACKENDS)) errors.push(at+": invalid backends");
     if (!unique(p.capabilities)||!subset(p.capabilities,CAPABILITIES)) errors.push(at+": invalid capabilities");
-    if (p.notes!==undefined && typeof p.notes!=="string") errors.push(at+": notes must be a string");
+    // Optional notes are never taken from a prototype getter.
+    const notes=Object.getOwnPropertyDescriptor(p,"notes");
+    if(notes&&!Object.hasOwn(notes,"value")) errors.push(at+": notes must be an own data property");
+    else if(notes&&notes.value!==undefined&&typeof notes.value!=="string")
+      errors.push(at+": notes must be a string");
     for (const k of Object.keys(p)) if (!["schemaVersion","name","backends","capabilities","notes"].includes(k)) errors.push(at+": unknown property "+k);
   }
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
 }
 export function validateClosure(input,profiles) {
-  if(!input||typeof input!=="object"||Array.isArray(input))
-    return {ok:false,errors:["resolved graph must be an object"]};
   const errors=[];
+  if(!input||typeof input!=="object"||Array.isArray(input)||!dataOnly(input))
+    return {ok:false,errors:["resolved graph must be an object"]};
+  const keys=["schemaVersion","nodes","entry","target","backend","grants"];
+  for(const field of Object.keys(input))
+    if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
-    if(!Object.hasOwn(input,field))errors.push("missing resolved-graph property "+field);
-  const {schemaVersion,nodes,entry,target,backend,grants=[]}=input;
-  for(const key of Object.keys(input))
-    if(!["schemaVersion","nodes","entry","target","backend","grants"].includes(key))
-      errors.push("unknown resolved-graph property "+key);
+    if(!Object.hasOwn(input,field))errors.push("missing resolved graph property "+field);
+  // Invalid/missing required data cannot be read from inherited getters.
+  if(errors.length)return {ok:false,errors};
+  const {schemaVersion,nodes,entry,target,backend}=input;
+  // Reject non-string graph selectors before they enter diagnostics,
+  // string concatenation or map lookups. Symbol-valued selectors previously
+  // threw TypeError instead of returning a fail-closed validation result.
+  if(typeof entry!=="string"||entry.length===0||entry.length>512||
+     entry.includes("\u0000"))errors.push("invalid resolved graph entry");
+  if(typeof target!=="string")errors.push("invalid resolved graph target");
+  if(typeof backend!=="string")errors.push("missing or unknown backend");
+  if(errors.length)return {ok:false,errors};
+  // Optional authority must never be inherited through a prototype chain.
+  const grants=Object.hasOwn(input,"grants")?input.grants:[];
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
   if(typeof backend!=="string"||!BACKENDS.includes(backend))errors.push("missing or unknown backend");
   const registry=validateRegistry(profiles);
@@ -43,12 +98,13 @@ export function validateClosure(input,profiles) {
   if (profile && unique(grants) && !subset(grants,profile.capabilities)) errors.push("capability grant unavailable in "+target);
   if (!Array.isArray(nodes)||nodes.length===0) return {ok:false,errors:[...errors,"nodes must be a nonempty array"]};
   if(nodes.length>4096)return {ok:false,errors:[...errors,"resolved graph exceeds 4096 units"]};
+  if(!ownDenseArray(nodes))return {ok:false,errors:[...errors,"nodes must be a dense own-indexed array"]};
   const ids=new Map();
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
-    if(!node||typeof node!=="object"||Array.isArray(node)){errors.push(at+": expected object");continue}
-    for(const field of ["id","targets","requires","imports"])
-      if(!Object.hasOwn(node,field))errors.push(at+": missing own "+field);
+    if(!node||typeof node!=="object"||Array.isArray(node)||!dataOnly(node)){errors.push(at+": expected plain data object");continue}
+    const missing=["id","targets","requires","imports"].filter(k=>!Object.hasOwn(node,k));
+    if(missing.length){errors.push(at+": missing own node fields "+missing.join(","));continue}
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
     if(ids.has(node.id))errors.push(at+": duplicate id "+node.id);
     ids.set(node.id,node);
@@ -84,11 +140,13 @@ export function validateClosure(input,profiles) {
     }
   }
   if(visited.size!==ids.size) errors.push("graph contains "+(ids.size-visited.size)+" unreachable units; supply exact linked closure");
-  // A resolved, closed dependency graph has an exact effect budget. Reject
-  // unused grants rather than provisioning authority no unit can justify.
+  // A closed graph may only receive authority declared by a linked unit.
   const used=new Set();
-  for(const unit of ids.values())for(const effect of unit.requires)used.add(effect);
-  const unused=grants.filter(capability=>!used.has(capability));
+  for(const unit of ids.values())
+    for(let i=0;i<unit.requires.length;i++)used.add(unit.requires[i]);
+  const unused=[];
+  for(let i=0;i<grants.length;i++)
+    if(!used.has(grants[i]))unused.push(grants[i]);
   if(unused.length)errors.push("unused build grants: "+unused.join(","));
   return {ok:errors.length===0,errors,visited:visited.size};
 }

@@ -12,7 +12,7 @@ const check=input=>validateClosure(input,profiles);
 test("resolved closure rejects unrecognized top-level fields",()=>{
  const result=check({...graph,unverifiedPermissions:["fs.write"]});
  assert.equal(result.ok,false);
- assert.match(result.errors.join("\n"),/unknown resolved-graph property/);
+ assert.match(result.errors.join("\n"),/unknown resolved graph property/);
 });
 test("resolved closure does not throw on invalid root shapes",()=>{
  for(const input of [null,undefined,[],42,"no graph"]){
