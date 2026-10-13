@@ -140,5 +140,13 @@ export function validateClosure(input,profiles) {
     }
   }
   if(visited.size!==ids.size) errors.push("graph contains "+(ids.size-visited.size)+" unreachable units; supply exact linked closure");
+  // A closed graph may only receive authority declared by a linked unit.
+  const used=new Set();
+  for(const unit of ids.values())
+    for(let i=0;i<unit.requires.length;i++)used.add(unit.requires[i]);
+  const unused=[];
+  for(let i=0;i<grants.length;i++)
+    if(!used.has(grants[i]))unused.push(grants[i]);
+  if(unused.length)errors.push("unused build grants: "+unused.join(","));
   return {ok:errors.length===0,errors,visited:visited.size};
 }
