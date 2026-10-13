@@ -49,3 +49,53 @@ test("ordinary JSON objects remain valid; inherited or surplus grants never auth
   });
   assert.equal(validateClosure(inherited,profiles).ok,false);
 });
+
+test("proxy-backed graph cannot lie about its actual grant data descriptor",()=>{
+  let grantReads=0;
+  const wrapped=new Proxy({...graph,grants:["clock","fs.write"]},{
+    get(target,key,receiver){
+      if(key==="grants"){grantReads++;return ["clock"]}
+      return Reflect.get(target,key,receiver);
+    }
+  });
+  const result=validateClosure(wrapped,profiles);
+  assert.equal(result.ok,false,result.errors.join("; "));
+  assert.equal(grantReads,0,"never invoke a proxy authority getter trap");
+});
+
+test("transparently wrapped graphs, units, profiles and authority arrays are not plain JSON",()=>{
+  const wrapped=value=>new Proxy(value,{});
+  const cases=[
+    ()=>validateClosure(wrapped(graph),profiles),
+    ()=>validateClosure({...graph,nodes:[wrapped(unit)]},profiles),
+    ()=>validateClosure({...graph,nodes:wrapped([unit])},profiles),
+    ()=>validateClosure({...graph,grants:wrapped(["clock"])},profiles),
+    ()=>validateRegistry(wrapped(profiles)),
+    ()=>validateRegistry(profiles.map((p,i)=>i===0?wrapped(p):p)),
+    ()=>validateRegistry(profiles.map((p,i)=>i===0?{...p,capabilities:wrapped(p.capabilities)}:p))
+  ];
+  for(const invoke of cases){
+    const result=invoke();
+    assert.equal(result.ok,false,"proxy-backed authority must fail closed");
+  }
+});
+
+test("revoked proxies fail closed as validation results, not uncaught TypeErrors",()=>{
+  const revoked=value=>{
+    const pair=Proxy.revocable(value,{});
+    pair.revoke();
+    return pair.proxy;
+  };
+  const cases=[
+    ()=>validateClosure(revoked(graph),profiles),
+    ()=>validateClosure({...graph,nodes:[revoked(unit)]},profiles),
+    ()=>validateClosure({...graph,nodes:revoked([unit])},profiles),
+    ()=>validateClosure({...graph,grants:revoked(["clock"])},profiles),
+    ()=>validateRegistry(revoked(profiles)),
+    ()=>validateRegistry(profiles.map((p,i)=>i===0?revoked(p):p))
+  ];
+  for(const invoke of cases){
+    const result=invoke();
+    assert.equal(result.ok,false,"revoked proxy must yield a denial, not throw");
+  }
+});

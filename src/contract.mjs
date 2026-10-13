@@ -1,3 +1,5 @@
+import {types as utilTypes} from "node:util";
+
 export const CAPABILITIES = Object.freeze(["clock","random","net.client","net.server","fs.read","fs.write","threads","interop.java","interop.native","device.camera","device.gpio","dynamic.code","heap","gc"]);
 export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js","edge-wasi","ios","android","embedded"]);
 export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex","c","bytecode"]);
@@ -8,7 +10,7 @@ export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex",
 // In particular, allow no shadowed includes/every/entries, custom prototypes
 // or sparse slots: all can subvert policy checks despite a correct length.
 const ownDenseArray=(a,max=4096)=>{
-  if(!Array.isArray(a)||Object.getPrototypeOf(a)!==Array.prototype||a.length>max)return false;
+  if(utilTypes.isProxy(a)||!Array.isArray(a)||Object.getPrototypeOf(a)!==Array.prototype||a.length>max)return false;
   if(Reflect.ownKeys(a).length!==a.length+1)return false;
   for(let i=0;i<a.length;i++){
     const slot=Object.getOwnPropertyDescriptor(a,String(i));
@@ -19,6 +21,7 @@ const ownDenseArray=(a,max=4096)=>{
 // Pure JSON object shape: permit ordinary and null-prototype dictionaries,
 // but never grant admission to objects with caller-controlled inherited fields.
 const dataOnly=o=>{
+  if(utilTypes.isProxy(o))return false;
   const prototype=Object.getPrototypeOf(o);
   if(prototype!==Object.prototype && prototype!==null)return false;
   for(const key of Reflect.ownKeys(o)){
@@ -51,7 +54,7 @@ export function validateRegistry(profiles) {
   if (!ownDenseArray(profiles)) return {ok:false,errors:["registry must be a dense own-indexed array"]};
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
-    if (!p || typeof p!=="object" || Array.isArray(p) || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
+    if (!p || typeof p!=="object" || utilTypes.isProxy(p) || Array.isArray(p) || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
     const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
     if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
@@ -71,7 +74,7 @@ export function validateRegistry(profiles) {
 }
 export function validateClosure(input,profiles) {
   const errors=[];
-  if(!input||typeof input!=="object"||Array.isArray(input)||!dataOnly(input))
+  if(!input||typeof input!=="object"||utilTypes.isProxy(input)||Array.isArray(input)||!dataOnly(input))
     return {ok:false,errors:["resolved graph must be an object"]};
   const keys=["schemaVersion","nodes","entry","target","backend","grants"];
   for(const field of Object.keys(input))
@@ -100,13 +103,13 @@ export function validateClosure(input,profiles) {
   if (backend!==undefined && (!BACKENDS.includes(backend)||!profile?.backends.includes(backend))) errors.push("backend "+backend+" is not declared for "+target);
   if (!unique(grants)||!subset(grants,CAPABILITIES)) errors.push("invalid or duplicate grants");
   if (profile && unique(grants) && !subset(grants,profile.capabilities)) errors.push("capability grant unavailable in "+target);
-  if (!Array.isArray(nodes)||nodes.length===0) return {ok:false,errors:[...errors,"nodes must be a nonempty array"]};
+  if (utilTypes.isProxy(nodes)||!Array.isArray(nodes)||nodes.length===0) return {ok:false,errors:[...errors,"nodes must be a nonempty array"]};
   if(nodes.length>4096)return {ok:false,errors:[...errors,"resolved graph exceeds 4096 units"]};
   if(!ownDenseArray(nodes))return {ok:false,errors:[...errors,"nodes must be a dense own-indexed array"]};
   const ids=new Map();
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
-    if(!node||typeof node!=="object"||Array.isArray(node)||!dataOnly(node)){errors.push(at+": expected plain data object");continue}
+    if(!node||typeof node!=="object"||utilTypes.isProxy(node)||Array.isArray(node)||!dataOnly(node)){errors.push(at+": expected plain data object");continue}
     const missing=["id","targets","requires","imports"].filter(k=>!Object.hasOwn(node,k));
     if(missing.length){errors.push(at+": missing own node fields "+missing.join(","));continue}
     if(typeof node.id!=="string"||node.id.length===0||node.id.length>512||node.id.includes("\u0000")){errors.push(at+": invalid id");continue}
