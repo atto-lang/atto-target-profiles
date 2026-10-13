@@ -115,8 +115,14 @@ export function validateClosure(input,profiles) {
   if (backend!==undefined && (!BACKENDS.includes(backend)||!profile?.backends.includes(backend))) errors.push("backend "+backend+" is not declared for "+target);
   if (!unique(grants)||!subset(grants,CAPABILITIES)) errors.push("invalid or duplicate grants");
   if (profile && unique(grants) && !subset(grants,profile.capabilities)) errors.push("capability grant unavailable in "+target);
-  if(!ownDenseArray(nodes))return {ok:false,errors:[...errors,"nodes must be a dense own-indexed array"]};
+  // Check for proxies before accessing array.length: revoked proxies
+  // can throw even from seemingly innocent shape/size probes.
+  if(nodeTypes.isProxy(nodes)||!Array.isArray(nodes))
+    return {ok:false,errors:[...errors,"nodes must be a dense own-indexed array"]};
   if(nodes.length===0)return {ok:false,errors:[...errors,"nodes must be a nonempty array"]};
+  if(nodes.length>4096)return {ok:false,errors:[...errors,"resolved graph exceeds 4096 units"]};
+  if(!ownDenseArray(nodes))
+    return {ok:false,errors:[...errors,"nodes must be a dense own-indexed array"]};
   const ids=new Map();
   for(const [i,node] of nodes.entries()){
     const at="nodes["+i+"]";
