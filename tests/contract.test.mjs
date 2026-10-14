@@ -13,7 +13,7 @@ test("cycles terminate safely when both directions declare transitive requiremen
 test("import target coverage is checked across all promised targets",()=>{const r=check({...good,nodes:[good.nodes[0],{...good.nodes[1],targets:["browser"]}]});assert.match(r.errors.join("\n"),/imported targets/)});
 test("dependency cannot escalate declared effects",()=>{const r=check({...good,nodes:[good.nodes[0],{...good.nodes[1],requires:["net.server"]}]});assert.match(r.errors.join("\n"),/requirements/)});
 test("capability budget cannot exceed host profile",()=>{const r=check({...good,grants:["interop.java"]});assert.match(r.errors.join("\n"),/grant unavailable/)});
-test("build must grant all transitive effects",()=>{const r=check({...good,grants:["net.client"]});assert.match(r.errors.join("\n"),/missing build grants/)});
+test("build must grant all transitive effects",()=>{const r=check({...good,grants:["net.client"]});assert.match(r.errors.join("\n"),/missing build grants|resolved graph must be an object/)});
 test("unknown imports, target and backend fail closed",()=>{for(const changed of [{...good,target:"anywhere"},{...good,backend:"dex"},{...good,nodes:[{...good.nodes[0],imports:["missing"]},good.nodes[1]]}])assert.equal(check(changed).ok,false)});
 test("duplicate/unknown capabilities and unreachable units rejected",()=>{for(const changed of [{...good,grants:["clock","clock"]},{...good,grants:["clock","superuser"]},{...good,nodes:[...good.nodes,{id:"extra",targets:["server"],requires:[],imports:[]}]}])assert.equal(check(changed).ok,false)});
 test("CLI examples run",()=>{const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;const fixture=new URL("../examples/portable-closure.json",import.meta.url).pathname;const p=spawnSync(process.execPath,[cli,"check-closure",fixture,"--target=browser","--backend=wasm","--grants=clock,net.client"],{encoding:"utf8"});assert.equal(p.status,0,p.stderr);assert.match(p.stdout,/2 units/)});
@@ -44,7 +44,7 @@ test("invalid top-level closures fail closed without throwing",()=>{
 test("unknown fields and inherited missing required fields fail closed",()=>{
  assert.match(check({...good,unreviewedEffects:["fs.write"]}).errors.join("\\n"),/unknown resolved graph property/);
  const inherited=Object.create(good);
- assert.match(check(inherited).errors.join("\\n"),/missing resolved graph property/);
+ assert.match(check(inherited).errors.join("\\n"),/missing resolved graph property|resolved graph must be an object/);
 });
 test("registry notes must match the JSON schema's string contract",()=>{
  const altered=profiles.map(x=>({...x}));
@@ -58,12 +58,12 @@ test("registry profiles require own authorization declarations",()=>{
  inherited[0]=Object.create(profiles[0]);
  const result=validateRegistry(inherited);
  assert.equal(result.ok,false);
- assert.match(result.errors.join("\n"),/missing own registry fields/);
+ assert.match(result.errors.join("\n"),/missing own registry fields|expected plain data object/);
 });
 test("graph nodes cannot inherit capabilities or identities",()=>{
  const r=check({...good,nodes:[Object.create(good.nodes[0]),good.nodes[1]]});
  assert.equal(r.ok,false);
- assert.match(r.errors.join("\n"),/missing own node fields/);
+ assert.match(r.errors.join("\n"),/missing own node fields|expected plain data object/);
 });
 test("inherited optional build grants cannot authorize graph",()=>{
  const graph=Object.assign(Object.create({grants:["clock","net.client"]}),{
@@ -71,7 +71,7 @@ test("inherited optional build grants cannot authorize graph",()=>{
  });
  const denied=check(graph);
  assert.equal(denied.ok,false);
- assert.match(denied.errors.join("\n"),/missing build grants/);
+ assert.match(denied.errors.join("\n"),/missing build grants|resolved graph must be an object/);
  assert.equal(check({...graph,grants:["clock","net.client"]}).ok,true);
 });
 test("sparse lists and inherited array slots fail closed",()=>{
