@@ -26,3 +26,24 @@ test("zero-import ABI forbids host calls and capability escalation",()=>{
  assert.equal(check({...good,requiredCapabilities:["clock"]}).ok,false);
  assert.equal(check({...good,requiredCapabilities:["fs.read"]}).ok,false);
 });
+
+test("artifact authority rejects inherited fields, accessors, proxies and hidden metadata",()=>{
+ let accesses=0;
+ const getter={...good};Object.defineProperty(getter,"entry",{enumerable:true,get(){accesses++;throw Error("getter");}});
+ const hidden={...good};Object.defineProperty(hidden,"hidden",{value:true});
+ const symbol={...good,[Symbol("extra")]:true};
+ const malformed=[Object.create(good),getter,hidden,symbol,new Proxy(good,{}),Proxy.revocable(good,{} )];
+ const revoked=Proxy.revocable(good,{});revoked.revoke();malformed.push(revoked.proxy);
+ for(const x of malformed)assert.equal(check(x).ok,false);
+ for(const key of ["memory","producer"])
+  assert.equal(check({...good,[key]:Object.create(good[key])}).ok,false);
+ const caps=[];Object.defineProperty(caps,"extra",{get(){accesses++;throw Error("getter");}});
+ assert.equal(check({...good,requiredCapabilities:caps}).ok,false);
+ assert.equal(accesses,0);
+});
+test("null-prototype artifact records remain valid own data",()=>{
+ const value=Object.assign(Object.create(null),good);
+ value.memory=Object.assign(Object.create(null),good.memory);
+ value.producer=Object.assign(Object.create(null),good.producer);
+ assert.equal(check(value).ok,true);
+});
