@@ -3,7 +3,9 @@
   "name": "desktop",
   "backends": [
     "llvm",
-    "graal"
+    "graal",
+    "net",
+    "forge"
   ],
   "capabilities": [
     "clock",
@@ -20,5 +22,6 @@
     "gc",
     "device.camera"
   ],
-  "notes": "Potential host upper bounds only; never grants; host-conditional features require explicit verification"
+  "notes": "Potential host upper bounds only; never grants; host-conditional features require explicit verification",
+  "coreIoPolicy": "native-async-only"
 }

@@ -1,8 +1,9 @@
+export const CORE_IO_POLICY = "native-async-only";
 import {types as nodeTypes} from "node:util";
 
 export const CAPABILITIES = Object.freeze(["clock","random","net.client","net.server","fs.read","fs.write","threads","interop.java","interop.native","device.camera","device.gpio","dynamic.code","heap","gc"]);
 export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js","edge-wasi","ios","android","embedded"]);
-export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex","c","bytecode"]);
+export const BACKENDS = Object.freeze(["llvm","graal","net","forge","wasm","javascript","dex","c","bytecode"]);
 // Authority-bearing lists must be dense, own-indexed, unique JSON-like arrays.
 // Array#every skips holes, and inherited numeric entries can otherwise mask
 // absent capabilities/targets, making a malformed build graph appear valid.
@@ -67,8 +68,9 @@ export function validateRegistry(profiles) {
   for (const [i,p] of profiles.entries()) {
     const at="profiles["+i+"]";
     if (!p || typeof p!=="object" || !dataOnly(p)) {errors.push(at+": expected plain data object");continue}
-    const missing=["schemaVersion","name","backends","capabilities"].filter(k=>!Object.hasOwn(p,k));
+    const missing=["schemaVersion","name","backends","capabilities","coreIoPolicy"].filter(k=>!Object.hasOwn(p,k));
     if(missing.length){errors.push(at+": missing own registry fields "+missing.join(","));continue}
+    if (p.coreIoPolicy!==CORE_IO_POLICY) errors.push(at+": coreIoPolicy must be native-async-only");
     if (p.schemaVersion!==1 || !ENVIRONMENTS.includes(p.name)) errors.push(at+": unknown schema or target");
     if (seen.has(p.name)) errors.push(at+": duplicate environment "+p.name);
     seen.add(p.name);
@@ -79,7 +81,7 @@ export function validateRegistry(profiles) {
     if(notes&&!Object.hasOwn(notes,"value")) errors.push(at+": notes must be an own data property");
     else if(notes&&notes.value!==undefined&&typeof notes.value!=="string")
       errors.push(at+": notes must be a string");
-    for (const k of Object.keys(p)) if (!["schemaVersion","name","backends","capabilities","notes"].includes(k)) errors.push(at+": unknown property "+k);
+    for (const k of Object.keys(p)) if (!["schemaVersion","name","backends","capabilities","coreIoPolicy","notes"].includes(k)) errors.push(at+": unknown property "+k);
   }
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
@@ -88,7 +90,7 @@ export function validateClosure(input,profiles) {
   const errors=[];
   if(!input||typeof input!=="object"||!dataOnly(input))
     return {ok:false,errors:["resolved graph must be an object"]};
-  const keys=["schemaVersion","nodes","entry","target","backend","grants"];
+  const keys=["schemaVersion","nodes","entry","target","backend","grants","coreIoPolicy"];
   for(const field of Object.keys(input))
     if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
@@ -96,6 +98,8 @@ export function validateClosure(input,profiles) {
   // Invalid/missing required data cannot be read from inherited getters.
   if(errors.length)return {ok:false,errors};
   const {schemaVersion,nodes,entry,target,backend}=input;
+  if(Object.hasOwn(input,"coreIoPolicy") && input.coreIoPolicy!==CORE_IO_POLICY)
+    errors.push("coreIoPolicy must be native-async-only; blocking compatibility is forbidden");
   // Reject non-string graph selectors before they enter diagnostics,
   // string concatenation or map lookups. Symbol-valued selectors previously
   // threw TypeError instead of returning a fail-closed validation result.
@@ -172,5 +176,5 @@ export function validateClosure(input,profiles) {
   for(let i=0;i<grants.length;i++)
     if(!used.has(grants[i]))unused.push(grants[i]);
   if(unused.length)errors.push("unused build grants: "+unused.join(","));
-  return {ok:errors.length===0,errors,visited:visited.size};
+  return {ok:errors.length===0,errors,visited:visited.size,coreIoPolicy:CORE_IO_POLICY};
 }

@@ -18,5 +18,6 @@
     "device.camera",
     "interop.java"
   ],
-  "notes": "Potential host upper bounds only; never grants; host-conditional features require explicit verification"
+  "notes": "Potential host upper bounds only; never grants; host-conditional features require explicit verification",
+  "coreIoPolicy": "native-async-only"
 }

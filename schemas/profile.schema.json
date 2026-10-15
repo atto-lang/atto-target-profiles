@@ -7,7 +7,8 @@
     "schemaVersion",
     "name",
     "backends",
-    "capabilities"
+    "capabilities",
+    "coreIoPolicy"
   ],
   "properties": {
     "schemaVersion": {
@@ -33,6 +34,8 @@
         "enum": [
           "llvm",
           "graal",
+          "net",
+          "forge",
           "wasm",
           "javascript",
           "dex",
@@ -65,6 +68,9 @@
     },
     "notes": {
       "type": "string"
+    },
+    "coreIoPolicy": {
+      "const": "native-async-only"
     }
   }
 }

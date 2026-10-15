@@ -26,3 +26,5 @@ The admission checker consumes a **versioned, already resolved, pinned import gr
 5. Keep the schema vocabulary consistent with Java admission PR #586; LLVM admission PR #74 closed unmerged.
 
 See https://ores-truffle-oreslang.github.io/logs/2/
+
+See [mandatory nonblocking guest I/O](docs/MANDATORY_ASYNC_IO.md) for enforcement, verification and unsupported surfaces.

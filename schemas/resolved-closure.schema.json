@@ -39,6 +39,9 @@
       "items": {
         "$ref": "#/$defs/capability"
       }
+    },
+    "coreIoPolicy": {
+      "const": "native-async-only"
     }
   },
   "$defs": {
@@ -64,6 +67,8 @@
       "enum": [
         "llvm",
         "graal",
+        "net",
+        "forge",
         "wasm",
         "javascript",
         "dex",
