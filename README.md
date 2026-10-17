@@ -26,3 +26,52 @@ The admission checker consumes a **versioned, already resolved, pinned import gr
 5. Keep the schema vocabulary consistent with Java admission PR #586; LLVM admission PR #74 closed unmerged.
 
 See https://ores-truffle-oreslang.github.io/logs/2/
+
+## Opt-in freestanding library admission
+
+A resolved graph may optionally declare `libraryProfile`, `providers`, and a
+`layer` on **every** source unit. Profiles are `freestanding-core`,
+`freestanding-alloc`, `freestanding-actor`, `freestanding-otp`, and
+`hosted`. These are library dependency contracts, **not** claims about
+supported executable backend targets.
+
+- `core` depends on `core` only, and never requires host capabilities.
+- `alloc` can depend on `core/alloc` and requires `allocator.explicit`
+  if present in the closure.
+- `actor` can depend on `core/alloc/actor` and requires an explicit
+  executor, bounded mailbox, and trusted CONTROL provider (even without alloc).
+- `otp` can depend on `core/alloc/actor/otp` but not `std`; the
+  six OTP behaviours are a separate implementation milestone.
+- `std` is admitted only in `hosted`; even there, `core`
+  cannot depend on higher layers.
+- Every freestanding resolved node has an empty *ambient host capability*
+  `requires` set. Explicit provider declarations are separately checked.
+  Source calls to target-specific HAL/device interfaces need later
+  compiler-level effect typing and may not be mislabeled `core`.
+
+For example:
+
+~~~sh
+node bin/oreslang-target.mjs check-closure \
+  examples/freestanding-core-closure.json \
+  --target=embedded --backend=llvm --grants=
+~~~
+
+The `app` layer identifies application source, not a new privileged library.
+Legacy v1 closures **without** `libraryProfile` retain the existing behavior;
+supplying `providers` or node `layer` without the opt-in is rejected.
+The compiler must infer `layer` from trusted canonical import resolution;
+this JSON validator cannot independently prove that a claimed `core` unit
+contains only core source, nor that LLVM/native is actually freestanding.
+Never trust a manifest authored by untrusted application code as proof of
+library origin or effects.
+
+This step can report only **contract admission**. It does not modify
+the Java/GraalVM `std/core` loader, implement a no-main entry point, provide a
+panic hook, link without libc, or demonstrate guest execution on Cortex-M.
+Native linker/undefined-symbol checks and backend conformance tests are
+required before advertising `no_std` support.
+
+Related upstream architecture:
+- [Java core/alloc/actor/std proposal](https://github.com/ores-truffle-oreslang/oreslang-source.java/blob/main/docs/CORE_ALLOC_STD_BOUNDARY.md)
+- [Shared freestanding/OTP contract PR #66](https://github.com/ores-truffle-oreslang/oreslang-common-source/pull/66)
