@@ -57,7 +57,9 @@
         "edge-wasi",
         "ios",
         "android",
-        "embedded"
+        "embedded",
+        "fpga",
+        "asic"
       ]
     },
     "backend": {
@@ -68,7 +70,8 @@
         "javascript",
         "dex",
         "c",
-        "bytecode"
+        "bytecode",
+        "hdl"
       ]
     },
     "capability": {
