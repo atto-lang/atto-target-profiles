@@ -56,6 +56,7 @@ test("OTP remains above actor and needs trusted runtime provider",()=>{
                node("actor/mailbox","actor")];
   const candidate={...base,libraryProfile:"freestanding-otp",nodes,providers};
   assert.equal(check(candidate).ok,true,errors(candidate));
+  assert.match(errors({...candidate,nodes:nodes.slice(0,2).map((n,i)=>i===1?{...n,imports:[]}:n)}),/otp requires actor layer/);
   assert.match(errors({...candidate,libraryProfile:"freestanding-actor"}),/layer otp is forbidden/);
   const bad={...candidate,nodes:[...nodes,node("std/fs","std")]};
   bad.nodes[1]={...nodes[1],imports:["actor/mailbox","std/fs"]};
