@@ -22,7 +22,8 @@
         "edge-wasi",
         "ios",
         "android",
-        "embedded"
+        "embedded",
+        "litegraph"
       ]
     },
     "backends": {
