@@ -23,7 +23,8 @@ const imports={
   alloc:new Set(["core","alloc"]),
   actor:new Set(["core","alloc","actor"]),
   otp:new Set(["core","alloc","actor","otp"]),
-  std:new Set(LIBRARY_LAYERS)
+  // Built-in stdlib must not depend on application modules (confused deputy).
+  std:new Set(["core","alloc","actor","otp","std"])
 };
 // These are minimum required providers when the corresponding resolved layer
 // occurs. Supplying a provider does not itself establish a backend capability.
@@ -43,6 +44,7 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
   const byId=new Map();
   for(const node of nodes)byId.set(node.id,node);
   const present=new Set();
+  const reverseImports=new Map();
   for(const node of nodes){
     const layer=node.layer;
     if(!LIBRARY_LAYERS.includes(layer)){
@@ -57,6 +59,10 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
     if(libraryProfile!=="hosted" && node.requires.length)
       errors.push(node.id+": freestanding nodes cannot require ambient host capabilities");
     for(const importedId of node.imports){
+      // Track reverse edges so OTP admission proves a real dependency path
+      // to actor, not merely the presence of an unrelated actor in the graph.
+      if(!reverseImports.has(importedId))reverseImports.set(importedId,[]);
+      reverseImports.get(importedId).push(node.id);
       const dependency=byId.get(importedId);
       if(dependency && LIBRARY_LAYERS.includes(dependency.layer) &&
          !imports[layer].has(dependency.layer))
@@ -64,8 +70,28 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
                     layer+" -> "+dependency.layer);
     }
   }
-  if(present.has("otp") && !present.has("actor"))
-    errors.push("otp requires actor layer in resolved closure");
+  // Fixed-point reverse traversal: all units that genuinely depend on at
+  // least one actor library unit. Iterative and O(nodes + import edges).
+  const actorReachable=new Set();
+  const queue=[];
+  for(const node of nodes){
+    if(node.layer==="actor"){
+      actorReachable.add(node.id);
+      queue.push(node.id);
+    }
+  }
+  for(let i=0;i<queue.length;i++){
+    for(const parent of reverseImports.get(queue[i])??[]){
+      if(!actorReachable.has(parent)){
+        actorReachable.add(parent);
+        queue.push(parent);
+      }
+    }
+  }
+  for(const node of nodes){
+    if(node.layer==="otp" && !actorReachable.has(node.id))
+      errors.push(node.id+": otp requires transitive actor dependency");
+  }
   if(present.has("alloc") && !providers.includes("allocator.explicit"))
     errors.push("alloc requires allocator.explicit provider");
   if(present.has("actor") || present.has("otp")){
@@ -73,6 +99,18 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
       if(!providers.includes(required))
         errors.push("actor/otp requires "+required+" provider");
   }
+  // Extra runtime authority is not harmless. An unused provider can mask an
+  // accidentally missing dependency or widen an embedder's grants.
+  const permittedProviders=new Set();
+  if(present.has("alloc")||present.has("actor")||present.has("otp"))
+    permittedProviders.add("allocator.explicit");
+  if(present.has("actor")||present.has("otp")){
+    for(const provider of actorProviders)permittedProviders.add(provider);
+    permittedProviders.add("clock.monotonic");
+  }
+  for(const provider of providers)
+    if(!permittedProviders.has(provider))
+      errors.push("unused or unauthorized library provider: "+provider);
   if(libraryProfile==="freestanding-core" && providers.length)
     errors.push("freestanding-core forbids runtime providers");
   return {ok:errors.length===0,errors};
