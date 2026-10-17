@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
+import {spawnSync} from "node:child_process";
 import {validateClosure,LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS} from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
@@ -103,4 +104,13 @@ test("library schema vocabulary stays pinned to runtime admission",async()=>{
   assert.deepEqual(schema.$defs.libraryProvider.enum,LIBRARY_PROVIDERS);
   assert.equal(schema.properties.providers.maxItems,LIBRARY_PROVIDERS.length);
   assert.equal(schema.$defs.node.properties.layer.$ref,"#/$defs/libraryLayer");
+});
+
+test("CLI admits a freestanding core manifest and rejects std injection",async()=>{
+  const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;
+  const fixture=new URL("../examples/freestanding-core-closure.json",import.meta.url).pathname;
+  const result=spawnSync(process.execPath,[cli,"check-closure",fixture,
+    "--target=embedded","--backend=llvm","--grants="],{encoding:"utf8"});
+  assert.equal(result.status,0,result.stderr);
+  assert.match(result.stdout,/2 units/);
 });
