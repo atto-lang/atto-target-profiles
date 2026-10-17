@@ -64,6 +64,8 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
                     layer+" -> "+dependency.layer);
     }
   }
+  if(present.has("otp") && !present.has("actor"))
+    errors.push("otp requires actor layer in resolved closure");
   if(present.has("alloc") && !providers.includes("allocator.explicit"))
     errors.push("alloc requires allocator.explicit provider");
   if(present.has("actor") || present.has("otp")){
