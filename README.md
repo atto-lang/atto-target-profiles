@@ -44,6 +44,14 @@ supported executable backend targets.
   six OTP behaviours are a separate implementation milestone.
 - `std` is admitted only in `hosted`; even there, `core`
   cannot depend on higher layers.
+- Compiler-owned `std` must never import application modules (`std -> app` is
+  forbidden), including on hosted platforms.
+- Every `otp` unit must have a genuine transitive import path to an `actor`
+  unit; an unrelated actor elsewhere in the graph is insufficient.
+- Runtime providers are least-authority: a `freestanding-core` closure accepts
+  none; `alloc` requires explicit allocation, and actor/OTP providers may
+  include an optional allocator or monotonic clock where needed. Extra
+  unrelated provider grants are rejected.
 - Every freestanding resolved node has an empty *ambient host capability*
   `requires` set. Explicit provider declarations are separately checked.
   Source calls to target-specific HAL/device interfaces need later
@@ -75,3 +83,17 @@ required before advertising `no_std` support.
 Related upstream architecture:
 - [Java core/alloc/actor/std proposal](https://github.com/ores-truffle-oreslang/oreslang-source.java/blob/main/docs/CORE_ALLOC_STD_BOUNDARY.md)
 - [Shared freestanding/OTP contract PR #66](https://github.com/ores-truffle-oreslang/oreslang-common-source/pull/66)
+
+## Integration warning: overlapping admission proposal
+
+[PR #17](https://github.com/ores-truffle-oreslang/oreslang-target-profiles/pull/17)
+introduces a **different** standalone freestanding validator. The contracts
+are currently incompatible: PR #17 overloads `target` with the freestanding
+tier, uses `host` rather than `std`, omits application-layer units,
+uses different provider/effect names, and excludes optional `alloc` from its
+actor tier. Neither should be merged independently as the canonical API.
+Converge on the existing platform `target` + `backend` contract with a
+separate `libraryProfile`; retain a separate field for compiler-inferred
+provider/effect requirements once the Java and LLVM compilers actually emit
+them. This PR remains draft until exact-head test evidence and agreement on
+that unified contract.
