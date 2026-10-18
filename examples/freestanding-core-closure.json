@@ -16,7 +16,8 @@
       "requires": [],
       "imports": [
         "core/numeric"
-      ]
+      ],
+      "providerRequires": []
     },
     {
       "id": "core/numeric",
@@ -25,7 +26,8 @@
         "embedded"
       ],
       "requires": [],
-      "imports": []
+      "imports": [],
+      "providerRequires": []
     }
   ]
 }
