@@ -129,6 +129,13 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
   const permittedProviders=new Set();
   if(present.has("alloc")||present.has("actor")||present.has("otp"))
     permittedProviders.add("allocator.explicit");
+  // Hosted standard-library adapters may explicitly use allocator/clock
+  // providers without importing the freestanding alloc or actor libraries.
+  // This does not authorize CONTROL, executor or mailbox privileges.
+  if(libraryProfile==="hosted"&&present.has("std")){
+    permittedProviders.add("allocator.explicit");
+    permittedProviders.add("clock.monotonic");
+  }
   if(present.has("actor")||present.has("otp")){
     for(const provider of actorProviders)permittedProviders.add(provider);
     permittedProviders.add("clock.monotonic");
