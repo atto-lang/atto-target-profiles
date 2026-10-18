@@ -7,7 +7,7 @@ import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
 const good={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:["clock","net.client"],nodes:[{id:"app",targets:["browser","server"],requires:["clock","net.client"],imports:["dep"]},{id:"dep",targets:["browser","server"],requires:["net.client"],imports:[]}]};
 const check=data=>validateClosure(data,profiles);
-test("nine versioned target profiles conform to vocabulary",()=>assert.deepEqual(validateRegistry(profiles),{ok:true,errors:[]}));
+test("versioned target profiles conform to vocabulary",()=>assert.deepEqual(validateRegistry(profiles),{ok:true,errors:[]}));
 test("portable graph passes",()=>assert.equal(check(good).ok,true));
 test("cycles terminate safely when both directions declare transitive requirements",()=>assert.equal(check({...good,nodes:[good.nodes[0],{...good.nodes[1],requires:good.nodes[0].requires,imports:["app"]}]}).ok,true));
 test("import target coverage is checked across all promised targets",()=>{const r=check({...good,nodes:[good.nodes[0],{...good.nodes[1],targets:["browser"]}]});assert.match(r.errors.join("\n"),/imported targets/)});
@@ -211,6 +211,20 @@ test("resolved-closure JSON Schema 2020-12 vocabulary is pinned to runtime admis
  assert.equal(validateClosure(good,profiles).ok,true);
 });
 
+test("FPGA/ASIC pure import closure admitted to HDL; no OS capability grants",()=>{
+ for(const target of ["fpga","asic"]){
+  const pure={schemaVersion:1,entry:"adder",target,backend:"hdl",grants:[],nodes:[
+    {id:"adder",targets:["fpga","asic"],requires:[],imports:["fixedmath"]},
+    {id:"fixedmath",targets:["fpga","asic"],requires:[],imports:[]}
+  ]};
+  assert.equal(check(pure).ok,true,JSON.stringify(check(pure).errors));
+  assert.equal(check({...pure,backend:"llvm"}).ok,false);
+  assert.equal(check({...pure,grants:["heap"]}).ok,false);
+  assert.equal(check({...pure,nodes:[{...pure.nodes[0],requires:["heap"]},pure.nodes[1]]}).ok,false);
+  assert.equal(check({...pure,nodes:[{...pure.nodes[0],imports:["dynamic"]},pure.nodes[1]]}).ok,false);
+ }
+});
+
 test("LiteGraph profile is Wasm-only and excludes ambient host authority",()=>{
  const p=profiles.find(x=>x.name==="litegraph");
  assert.ok(p,"litegraph profile missing");
@@ -222,4 +236,9 @@ test("LiteGraph profile is Wasm-only and excludes ambient host authority",()=>{
   grants:["clock","heap"],nodes:[{id:"actor",targets:["litegraph"],requires:["clock","heap"],imports:[]}]};
  assert.equal(validateClosure(graph,profiles).ok,true);
  assert.equal(validateClosure({...graph,backend:"llvm"},profiles).ok,false);
+ assert.equal(validateClosure({...graph,grants:[]},profiles).ok,false);
+ for(const cap of ["gc","fs.read","fs.write","dynamic.code","interop.native","interop.java","threads"]) {
+  const bad={...graph,grants:[cap],nodes:[{id:"actor",targets:["litegraph"],requires:[cap],imports:[]}]};
+  assert.equal(validateClosure(bad,profiles).ok,false);
+ }
 });

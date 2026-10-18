@@ -23,6 +23,8 @@
         "ios",
         "android",
         "embedded",
+        "fpga",
+        "asic",
         "litegraph"
       ]
     },
@@ -38,7 +40,8 @@
           "javascript",
           "dex",
           "c",
-          "bytecode"
+          "bytecode",
+          "hdl"
         ]
       }
     },
