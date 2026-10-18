@@ -169,5 +169,46 @@
         "clock.monotonic"
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "libraryProfile"
+        ]
+      },
+      "then": {
+        "required": [
+          "providers"
+        ],
+        "properties": {
+          "nodes": {
+            "items": {
+              "required": [
+                "layer"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "providers"
+          ]
+        },
+        "properties": {
+          "nodes": {
+            "items": {
+              "not": {
+                "required": [
+                  "layer"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
