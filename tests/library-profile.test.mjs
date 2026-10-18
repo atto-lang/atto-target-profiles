@@ -124,6 +124,24 @@ test("core forbids direct host or provider effects even when hosted",()=>{
            node("core/math","core",[],[],["clock.monotonic"])]}),
     /core cannot require any runtime provider/);
 });
+test("hosted std can request allocator/clock without actor or CONTROL",()=>{
+  for(const provider of ["allocator.explicit","clock.monotonic"]){
+    const nodes=[
+      node("app","app",["std/io"],[],[provider]),
+      node("std/io","std",[],[],[provider])
+    ];
+    const g={...base,libraryProfile:"hosted",providers:[provider],nodes};
+    assert.equal(check(g).ok,true,errors(g));
+    assert.match(errors({...g,providers:[]}),/missing explicit provider grant/);
+    const unneeded={...g,nodes:[node("app","app",["std/io"]),node("std/io","std")]};
+    assert.match(errors(unneeded),/unused or unauthorized library provider/);
+  }
+  const forbidden={...base,libraryProfile:"hosted",providers:["control.trusted"],nodes:[
+    node("app","app",["std/io"],[],["control.trusted"]),
+    node("std/io","std",[],[],["control.trusted"])
+  ]};
+  assert.match(errors(forbidden),/unused or unauthorized library provider: control.trusted/);
+});
 test("freestanding target does not tolerate ambient host capabilities",()=>{
   assert.match(errors({...base,grants:["net.client"],nodes:[
     node("app","app",["core/math"],["net.client"]),node("core/math","core")
