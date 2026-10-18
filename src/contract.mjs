@@ -151,13 +151,19 @@ export function validateClosure(input,profiles) {
     if(!unique(node.requires)||!subset(node.requires,CAPABILITIES))errors.push(node.id+": invalid requires");
     if(!unique(node.imports)||node.imports.length>256||node.imports.some(x=>x.length>512||x.includes("\u0000")))errors.push(node.id+": invalid or excessive imports");
     const hasLayer=Object.hasOwn(node,"layer");
+    const hasProviderRequires=Object.hasOwn(node,"providerRequires");
     if(hasLibraryProfile && (!hasLayer||typeof node.layer!=="string"||
        !LIBRARY_LAYERS.includes(node.layer)))
       errors.push(node.id+": missing or invalid library layer");
     if(!hasLibraryProfile && hasLayer)
       errors.push(node.id+": node layer requires libraryProfile");
+    if(hasLibraryProfile && (!hasProviderRequires||
+       !unique(node.providerRequires)||!subset(node.providerRequires,LIBRARY_PROVIDERS)))
+      errors.push(node.id+": missing or invalid inferred provider requirements");
+    if(!hasLibraryProfile && hasProviderRequires)
+      errors.push(node.id+": provider requirements require libraryProfile");
     for(const field of Object.keys(node))
-      if(!["id","targets","requires","imports","layer"].includes(field))
+      if(!["id","targets","requires","imports","layer","providerRequires"].includes(field))
         errors.push(node.id+": unknown property "+field);
   }
   if(!ids.has(entry))errors.push("missing entry "+entry);
