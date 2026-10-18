@@ -210,3 +210,17 @@ test("resolved-closure JSON Schema 2020-12 vocabulary is pinned to runtime admis
  // transitive effects and that all declared nodes are reachable.
  assert.equal(validateClosure(good,profiles).ok,true);
 });
+
+test("FPGA/ASIC pure import closure admitted to HDL; no OS capability grants",()=>{
+ for(const target of ["fpga","asic"]){
+  const pure={schemaVersion:1,entry:"adder",target,backend:"hdl",grants:[],nodes:[
+    {id:"adder",targets:["fpga","asic"],requires:[],imports:["fixedmath"]},
+    {id:"fixedmath",targets:["fpga","asic"],requires:[],imports:[]}
+  ]};
+  assert.equal(check(pure).ok,true,JSON.stringify(check(pure).errors));
+  assert.equal(check({...pure,backend:"llvm"}).ok,false);
+  assert.equal(check({...pure,grants:["heap"]}).ok,false);
+  assert.equal(check({...pure,nodes:[{...pure.nodes[0],requires:["heap"]},pure.nodes[1]]}).ok,false);
+  assert.equal(check({...pure,nodes:[{...pure.nodes[0],imports:["dynamic"]},pure.nodes[1]]}).ok,false);
+ }
+});
