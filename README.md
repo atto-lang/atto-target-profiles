@@ -13,7 +13,8 @@ node bin/oreslang-target.mjs list
 node bin/oreslang-target.mjs check-closure examples/portable-closure.json --target=browser --backend=wasm --grants=clock,net.client
 ~~~
 
-Eight JSON profiles: server, desktop, browser, edge-js, edge-wasi, ios, android, embedded.
+Ten JSON profiles: server, desktop, browser, edge-js, edge-wasi, ios, android, embedded, fpga, asic. Hardware profiles use an explicit `hdl` backend and zero host capabilities; they are metadata admission only, not evidence of the Oreslang hardware compiler.
+
 The declared backend and capabilities are *possible* host features, not proof of backend readiness or permission grants. Browser threads and dynamic code, embedded GPIO and most host APIs require additional host-specific checks.
 
 The admission checker consumes a **versioned, already resolved, pinned import graph** in JSON (`schemaVersion: 1`, `entry`, `nodes`). Every validated invocation must also supply an explicit backend. It checks every unconditional edge A -> B with targets(A) subset-of targets(B) and requires(B) subset-of requires(A), enforces requested-target access and a separate, explicitly granted build capability budget. Rejects unknown targets/capabilities, bad imports, duplicates and unreachable units. Input is bounded to 4,096 source units, 256 imports per unit, and 65,536 examined edges; the traversal is iterative for cyclic or deep graphs.

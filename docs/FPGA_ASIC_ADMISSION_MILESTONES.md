@@ -1,18 +1,17 @@
-# FPGA and ASIC admission: deny by default (2026-10-17)
+# FPGA and ASIC admission: no CPU fallback
 
-Do not alias FPGA/ASIC to the existing embedded or llvm profiles, which mean CPU machine code. Until the HDL backend exposes genuine hardware effect/type checking and exact-source RTL lowering, the registry intentionally rejects these target names. JSON profiles cannot establish hardware synthesis.
+The registry contains capability-free `fpga` and `asic` profiles bound to the
+`hdl` backend. These profiles are policy upper bounds, not proof that a compiler
+can synthesize hardware. Generic `llvm` CPU closures must still reject both
+targets; the negative tests in this PR enforce that boundary.
 
-Next schema revision should:
-1. Add a distinct hdl backend and fpga/asic profiles together only after actual compiler capability verification.
-2. Require fixed-width static types, bounded loops/memory/topology, explicit clock/reset/CDC, and reject heap/GC/FFI/await/hot reload.
-3. Separate static source admission from simulation, FPGA synthesis/place-route/bitstream/board execution and ASIC mapped cells/physical layout/STA/DRC/LVS/fabrication.
-4. Reject signedness/overflow surprises, missing clock/timing contracts, dynamic effects, arbitrary CPU fallback and unpinned tools.
-5. Preserve every existing target's backend and capability budgets.
+Before claiming executable hardware support, require fixed-width static types,
+bounded loops/memory/topology, explicit clock/reset/CDC contracts, and rejection
+of heap, GC, FFI, await and hot reload. Verify exact-source RTL lowering and
+simulation separately from FPGA synthesis/place-route/bitstream/board execution
+and ASIC mapping/physical layout/STA/DRC/LVS/fabrication.
 
-RFC: https://github.com/ores-truffle-oreslang/oreslang-common-source/pull/65
-HDL: https://github.com/ores-truffle-oreslang/oreslang-source.hdl/pull/1
-FPGA: https://github.com/ores-truffle-oreslang/oreslang-platform.fpga/pull/1
-ASIC: https://github.com/ores-truffle-oreslang/oreslang-platform.asic/pull/1
-Tracking: https://github.com/ores-truffle-oreslang/oreslang-target-profiles/issues/13
+Reject signedness/overflow surprises, missing timing contracts, dynamic effects,
+arbitrary CPU fallback and unpinned tools. Preserve existing target budgets.
 
-Status: specification and negative tests only; no new hardware capability admitted.
+Status: specification and negative tests only; no synthesis capability certified.
