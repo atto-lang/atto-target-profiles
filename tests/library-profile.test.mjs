@@ -148,6 +148,12 @@ test("library schema vocabulary stays pinned to runtime admission",async()=>{
   assert.deepEqual(schema.$defs.libraryProvider.enum,LIBRARY_PROVIDERS);
   assert.equal(schema.properties.providers.maxItems,LIBRARY_PROVIDERS.length);
   assert.equal(schema.$defs.node.properties.layer.$ref,"#/$defs/libraryLayer");
+  const rule=schema.allOf[0];
+  assert.deepEqual(rule.if.required,["libraryProfile"]);
+  assert.deepEqual(rule.then.required,["providers"]);
+  assert.deepEqual(rule.then.properties.nodes.items.required,["layer"]);
+  assert.deepEqual(rule.else.not.required,["providers"]);
+  assert.deepEqual(rule.else.properties.nodes.items.not.required,["layer"]);
 });
 
 test("CLI admits a freestanding core manifest and rejects std injection",async()=>{
