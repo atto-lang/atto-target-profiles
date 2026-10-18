@@ -86,7 +86,15 @@ export function validateRegistry(profiles) {
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
 }
-export function validateClosure(input,profiles) {
+// A trusted compiler/build invocation may select the library profile outside
+// the graph. Supply requiredLibraryProfile to reject a graph that drops or
+// downgrades this selection (legacy opt-in remains when omitted).
+// The graph's claimed layers/effects must still be compiler-inferred.
+export function validateClosure(input,profiles,requiredLibraryProfile=null) {
+  if(requiredLibraryProfile!==null&&
+     (typeof requiredLibraryProfile!=="string"||
+      !LIBRARY_PROFILES.includes(requiredLibraryProfile)))
+    return {ok:false,errors:["invalid build-selected library profile"]};
   const errors=[];
   if(!input||typeof input!=="object"||!dataOnly(input))
     return {ok:false,errors:["resolved graph must be an object"]};
@@ -109,6 +117,12 @@ export function validateClosure(input,profiles) {
   // A libraryProfile is an explicit opt-in to the freestanding layer gate.
   // Its provider set must be supplied as own, dense, unique data.
   const hasLibraryProfile=Object.hasOwn(input,"libraryProfile");
+  // Never let caller-supplied graph JSON remove or change an externally
+  // selected freestanding/hosted profile. Otherwise a legacy v1 graph could
+  // bypass the opt-in policy by omitting the libraryProfile property.
+  if(requiredLibraryProfile!==null&&
+     (!hasLibraryProfile||input.libraryProfile!==requiredLibraryProfile))
+    errors.push("resolved graph libraryProfile missing or mismatched build selection");
   if(Object.hasOwn(input,"providers")&&!hasLibraryProfile)
     errors.push("providers requires libraryProfile");
   if(hasLibraryProfile){

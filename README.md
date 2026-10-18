@@ -75,6 +75,17 @@ node bin/oreslang-target.mjs check-closure \
 ~~~
 
 The `app` layer identifies application source, not a new privileged library.
+**Trusted build selection:** Use
+`validateClosure(graph, profiles, requiredLibraryProfile)` when an embedding
+compiler/build has explicitly selected `freestanding-core`,
+`freestanding-alloc`, `freestanding-actor`, `freestanding-otp`, or
+`hosted` outside the resolved-graph file. The third argument is a *trusted
+build setting*, not read from untrusted project source; if the graph omits
+`libraryProfile` or tries to change it, validation fails closed. The existing
+CLI still needs to wire its selected profile into this API, and Java/LLVM must
+supply authenticated inferred layers/effects before it becomes an enforcement
+boundary. Without that third argument, legacy behavior remains by design.
+
 Legacy v1 closures **without** `libraryProfile` retain the existing behavior;
 supplying `providers` or node `layer` without the opt-in is rejected.
 The compiler must infer `layer` from trusted canonical import resolution;

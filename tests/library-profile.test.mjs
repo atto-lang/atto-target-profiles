@@ -164,6 +164,27 @@ test("profile opt-in is mandatory for layer/provider metadata",()=>{
   assert.equal(check(legacy).ok,true,errors(legacy));
   assert.match(errors({...legacy,providers:[]}),/providers requires libraryProfile/);
 });
+test("build-selected freestanding profile cannot be removed or downgraded by graph metadata",()=>{
+  // Caller selected freestanding mode independently of source-controlled JSON.
+  // Legacy v1 is accepted only without an externally selected library mode.
+  const noProfile={...base};
+  delete noProfile.libraryProfile;
+  delete noProfile.providers;
+  const legacy={...noProfile,nodes:base.nodes.map(({layer,providerRequires,...x})=>x)};
+  assert.equal(check(legacy).ok,true);
+  assert.match(validateClosure(legacy,profiles,"freestanding-core").errors.join("\\n"),
+    /missing or mismatched build selection/);
+  assert.match(validateClosure({...base,libraryProfile:"hosted"},profiles,"freestanding-core")
+    .errors.join("\\n"),/missing or mismatched build selection/);
+  assert.match(validateClosure({...base,libraryProfile:"freestanding-actor"},profiles,"freestanding-core")
+    .errors.join("\\n"),/missing or mismatched build selection/);
+  assert.equal(validateClosure(base,profiles,"freestanding-core").ok,true);
+  assert.equal(validateClosure(base,profiles,"hosted").ok,false);
+  assert.match(validateClosure(base,profiles,"unrecognized").errors.join("\\n"),
+    /invalid build-selected library profile/);
+  assert.equal(validateClosure(base,profiles,{}).ok,false);
+});
+
 test("deep/cyclic OTP and actor imports validate without recursive overflow",()=>{
   const n=1100;
   const nodes=[
