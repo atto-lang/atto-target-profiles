@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:oreslang:target-profiles:resolved-closure:v1",
   "title": "Oreslang Resolved Target Closure v1",
-  "description": "Structural shape of a compiler-resolved closure. Semantic admission (edge target coverage, transitive capabilities, no unreachable units) MUST additionally run validateClosure. When libraryProfile is present, providers and per-node layer become mandatory and the runtime verifier enforces library DAG and freestanding capability restrictions.",
+  "description": "Structural shape of a compiler-resolved closure. Semantic admission (edge target coverage, transitive capabilities, no unreachable units) MUST additionally run validateClosure. When libraryProfile is present, providers and per-node layer/providerRequires become mandatory and the runtime verifier enforces library DAG and freestanding capability restrictions.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -138,6 +138,14 @@
         },
         "layer": {
           "$ref": "#/$defs/libraryLayer"
+        },
+        "providerRequires": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/libraryProvider"
+          }
         }
       }
     },
@@ -185,7 +193,8 @@
           "nodes": {
             "items": {
               "required": [
-                "layer"
+                "layer",
+                "providerRequires"
               ]
             }
           }
@@ -201,8 +210,17 @@
           "nodes": {
             "items": {
               "not": {
-                "required": [
-                  "layer"
+                "anyOf": [
+                  {
+                    "required": [
+                      "layer"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "providerRequires"
+                    ]
+                  }
                 ]
               }
             }
