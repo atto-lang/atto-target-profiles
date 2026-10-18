@@ -52,6 +52,15 @@ supported executable backend targets.
   none; `alloc` requires explicit allocation, and actor/OTP providers may
   include an optional allocator or monotonic clock where needed. Extra
   unrelated provider grants are rejected.
+- Every unit of an opted-in closure must declare `providerRequires`. The
+  validator requires per-unit demands to be granted, requires every importer to
+  propagate those demands, and rejects undeclared, unused or overbroad grants.
+  An `alloc` unit must require `allocator.explicit`; an `actor` unit must
+  require explicit executor, bounded mailbox, and trusted CONTROL providers.
+  Optional actor clocks/arenas are admitted **only when a unit requires them**.
+- `providerRequires` remains **untrusted metadata** until the compiler infers
+  it from authenticated source, intrinsics, and generated code. Neither the
+  validator nor a user-supplied manifest confers security authority.
 - Every freestanding resolved node has an empty *ambient host capability*
   `requires` set. Explicit provider declarations are separately checked.
   Source calls to target-specific HAL/device interfaces need later
