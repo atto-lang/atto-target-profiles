@@ -56,6 +56,13 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
       errors.push(node.id+": library layer "+layer+" is forbidden in "+libraryProfile);
     if(layer==="core" && node.requires.length)
       errors.push(node.id+": core cannot require any host capability");
+    if(layer==="core" && node.providerRequires.length)
+      errors.push(node.id+": core cannot require any runtime provider");
+    const implicit=layer==="actor"?actorProviders:
+                   layer==="alloc"?["allocator.explicit"]:[];
+    for(const provider of implicit)
+      if(!node.providerRequires.includes(provider))
+        errors.push(node.id+": "+layer+" requires declaration of "+provider);
     if(libraryProfile!=="hosted" && node.requires.length)
       errors.push(node.id+": freestanding nodes cannot require ambient host capabilities");
     for(const importedId of node.imports){
@@ -68,6 +75,13 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
          !imports[layer].has(dependency.layer))
         errors.push(node.id+" -> "+importedId+": forbidden library dependency "+
                     layer+" -> "+dependency.layer);
+      // Every consumer must explicitly reflect the transitive provider needs
+      // of its imports; no hidden implicit allocator/executor acquisition.
+      if(dependency){
+        for(const provider of dependency.providerRequires)
+          if(!node.providerRequires.includes(provider))
+            errors.push(node.id+" -> "+importedId+": undeclared imported provider "+provider);
+      }
     }
   }
   // Fixed-point reverse traversal: all units that genuinely depend on at
@@ -99,6 +113,17 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
       if(!providers.includes(required))
         errors.push("actor/otp requires "+required+" provider");
   }
+  // A provider is authorized only if its demand is recorded in at least one
+  // resolved unit. A caller-authored label is NOT evidence of real demand:
+  // compiler trusted-effect inference remains a separate prerequisite.
+  const usedProviders=new Set();
+  for(const node of nodes){
+    for(const provider of node.providerRequires){
+      usedProviders.add(provider);
+      if(!providers.includes(provider))
+        errors.push(node.id+": missing explicit provider grant "+provider);
+    }
+  }
   // Extra runtime authority is not harmless. An unused provider can mask an
   // accidentally missing dependency or widen an embedder's grants.
   const permittedProviders=new Set();
@@ -108,9 +133,10 @@ export function validateLibraryClosure({nodes,libraryProfile,providers}){
     for(const provider of actorProviders)permittedProviders.add(provider);
     permittedProviders.add("clock.monotonic");
   }
-  for(const provider of providers)
-    if(!permittedProviders.has(provider))
+  for(const provider of providers){
+    if(!permittedProviders.has(provider)||!usedProviders.has(provider))
       errors.push("unused or unauthorized library provider: "+provider);
+  }
   if(libraryProfile==="freestanding-core" && providers.length)
     errors.push("freestanding-core forbids runtime providers");
   return {ok:errors.length===0,errors};
