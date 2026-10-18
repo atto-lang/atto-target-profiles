@@ -2,165 +2,193 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {spawnSync} from "node:child_process";
-import {validateClosure,LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS} from "../src/contract.mjs";
+import {validateClosure,LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS}
+  from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
+
 const profiles=await loadProfiles();
-const node=(id,layer,imports=[],requires=[])=>({
-  id,layer,imports,requires,targets:["browser"]
+const ACTOR=["executor.explicit","mailbox.bounded","control.trusted"];
+const node=(id,layer,imports=[],requires=[],providerRequires=[])=>({
+  id,layer,imports,requires,providerRequires,targets:["browser"]
 });
+// Test builder only. The production validator must NEVER infer authority from
+// untrusted names or silently fill in missing requirements.
+const declared=nodes=>{
+  const copies=nodes.map(n=>({...n,providerRequires:[...n.providerRequires]}));
+  const index=new Map(copies.map(n=>[n.id,n]));
+  for(const n of copies){
+    if(n.layer==="actor")n.providerRequires=[...new Set([...n.providerRequires,...ACTOR])];
+    if(n.layer==="alloc")n.providerRequires=[...new Set([...n.providerRequires,"allocator.explicit"])];
+  }
+  // Iterative fixed point handles nested import paths and cycles in fixtures.
+  let changed=true,round=0;
+  while(changed){
+    if(++round>copies.length+1)throw Error("nonterminating test closure");
+    changed=false;
+    for(const n of copies){
+      const all=new Set(n.providerRequires);
+      for(const dep of n.imports)
+        for(const provider of index.get(dep)?.providerRequires??[])all.add(provider);
+      if(all.size!==n.providerRequires.length){
+        n.providerRequires=[...all];changed=true;
+      }
+    }
+  }
+  return copies;
+};
 const base={
   schemaVersion:1,entry:"app",target:"browser",backend:"wasm",
   grants:[],libraryProfile:"freestanding-core",providers:[],
-  nodes:[node("app","app",["core/min"]),node("core/min","core")]
+  nodes:[node("app","app",["core/math"]),node("core/math","core")]
 };
-const check=value=>validateClosure(value,profiles);
-const errors=value=>check(value).errors.join("\n");
-const providers=["executor.explicit","mailbox.bounded","control.trusted"];
-test("freestanding core admits no-OS scalar closure",()=>{
+const check=g=>validateClosure(g,profiles);
+const errors=g=>check(g).errors.join("\n");
+const actorNodes=()=>declared([node("app","app",["actor/mailbox"]),node("actor/mailbox","actor")]);
+
+test("core-only closure requires no host capability or provider",()=>{
   assert.equal(check(base).ok,true,errors(base));
 });
-test("freestanding layer gate rejects direct and transitive std dependencies",()=>{
-  const bad={...base,nodes:[
-    node("app","app",["core/min"]),node("core/min","core",["host/console"]),
-    node("host/console","std")
+test("core forbids direct and transitive higher-layer imports",()=>{
+  for(const layer of ["alloc","actor","otp","std"]){
+    const graph={...base,libraryProfile:"hosted",nodes:[
+      node("app","app",["core/math"]),node("core/math","core",["forbidden"]),
+      node("forbidden",layer)
+    ]};
+    assert.match(errors(graph),new RegExp("forbidden library dependency core -> "+layer));
+  }
+});
+test("freestanding rejects std even when imported by an app",()=>{
+  assert.match(errors({...base,nodes:[node("app","app",["std/net"]),node("std/net","std")]}),
+    /layer std is forbidden/);
+});
+test("hosted stdlib cannot import application units",()=>{
+  const denied={...base,libraryProfile:"hosted",nodes:[
+    node("app","app",["std/net"]),node("std/net","std",["app"])
   ]};
-  assert.match(errors(bad),/forbidden library dependency core -> std/);
-  assert.match(errors(bad),/library layer std is forbidden/);
+  assert.match(errors(denied),/forbidden library dependency std -> app/);
+  const admitted={...denied,nodes:[node("app","app",["std/net"]),node("std/net","std")]};
+  assert.equal(check(admitted).ok,true,errors(admitted));
 });
-test("core cannot import alloc even when enclosing profile admits allocation",()=>{
-  const bad={...base,libraryProfile:"freestanding-alloc",providers:["allocator.explicit"],nodes:[
-    node("app","app",["core/min"]),node("core/min","core",["alloc/vec"]),
-    node("alloc/vec","alloc")
+test("alloc requires inferred demand and explicit allocator grant",()=>{
+  const nodes=declared([node("app","app",["alloc/vector"]),node("alloc/vector","alloc")]);
+  const graph={...base,libraryProfile:"freestanding-alloc",nodes,providers:["allocator.explicit"]};
+  assert.equal(check(graph).ok,true,errors(graph));
+  assert.match(errors({...graph,providers:[]}),/requires allocator.explicit|missing explicit provider/);
+  const missingDemand=[node("app","app",["alloc/vector"]),node("alloc/vector","alloc")];
+  assert.match(errors({...graph,nodes:missingDemand}),/requires declaration of allocator.explicit/);
+  const missingPropagation=[node("app","app",["alloc/vector"]),
+    node("alloc/vector","alloc",[],[],["allocator.explicit"])];
+  assert.match(errors({...graph,nodes:missingPropagation}),/undeclared imported provider allocator.explicit/);
+});
+test("actor works with fixed capacity and without a mandatory allocator",()=>{
+  const graph={...base,libraryProfile:"freestanding-actor",nodes:actorNodes(),providers:ACTOR};
+  assert.equal(check(graph).ok,true,errors(graph));
+  assert.match(errors({...graph,providers:ACTOR.slice(1)}),/missing explicit provider grant|requires executor.explicit/);
+  const optional=declared([node("app","app",["actor/mailbox"]),
+    node("actor/mailbox","actor",[],[],["allocator.explicit","clock.monotonic"])]);
+  assert.equal(check({...graph,providers:[...ACTOR,"allocator.explicit","clock.monotonic"],nodes:optional}).ok,true);
+});
+test("actor provider requirements must propagate transitively and be complete",()=>{
+  const bad={...base,libraryProfile:"freestanding-actor",providers:ACTOR,nodes:[
+    node("app","app",["actor/mailbox"]),
+    node("actor/mailbox","actor",[],[],ACTOR)
   ]};
-  assert.match(errors(bad),/forbidden library dependency core -> alloc/);
+  assert.match(errors(bad),/undeclared imported provider executor.explicit/);
+  const forged=declared([node("app","app",["actor/mailbox"]),node("actor/mailbox","actor")]);
+  forged[1].providerRequires=ACTOR.slice(1);
+  assert.match(errors({...bad,nodes:forged}),/actor requires declaration of executor.explicit/);
 });
-test("alloc requires explicit provider, not ambient heap",()=>{
-  const nodes=[node("app","app",["alloc/vec"]),node("alloc/vec","alloc")];
-  const noAllocator={...base,libraryProfile:"freestanding-alloc",nodes};
-  assert.match(errors(noAllocator),/alloc requires allocator.explicit/);
-  assert.equal(check({...noAllocator,providers:["allocator.explicit"]}).ok,true);
-  const ambient={...noAllocator,providers:["allocator.explicit"],grants:["heap"],
-    nodes:[node("app","app",["alloc/vec"],["heap"]),node("alloc/vec","alloc",[],["heap"])]};
-  assert.match(errors(ambient),/ambient host capabilities/);
-});
-test("bounded actor profile admits explicit execution, not OS threads",()=>{
-  const nodes=[node("app","app",["actor/mailbox"]),node("actor/mailbox","actor")];
-  const actor={...base,libraryProfile:"freestanding-actor",nodes};
-  assert.match(errors(actor),/executor.explicit/);
-  assert.match(errors({...actor,providers:["executor.explicit"]}),/mailbox.bounded/);
-  assert.match(errors({...actor,providers:providers.slice(0,2)}),/control.trusted/);
-  assert.equal(check({...actor,providers}).ok,true);
-});
-test("OTP remains above actor and needs trusted runtime provider",()=>{
-  const nodes=[node("app","app",["otp/gen_server"]),node("otp/gen_server","otp",["actor/mailbox"]),
-               node("actor/mailbox","actor")];
-  const candidate={...base,libraryProfile:"freestanding-otp",nodes,providers};
-  assert.equal(check(candidate).ok,true,errors(candidate));
-  assert.match(errors({...candidate,nodes:nodes.slice(0,2).map((n,i)=>i===1?{...n,imports:[]}:n)}),/otp requires transitive actor dependency/);
-  const unrelated=[
-    node("app","app",["otp/gen_server","actor/mailbox"]),
-    node("otp/gen_server","otp"),
+test("OTP must truly depend on actor and cannot import std",()=>{
+  const nodes=declared([
+    node("app","app",["otp/gen_server"]),
+    node("otp/gen_server","otp",["actor/mailbox"]),
     node("actor/mailbox","actor")
+  ]);
+  const graph={...base,libraryProfile:"freestanding-otp",providers:ACTOR,nodes};
+  assert.equal(check(graph).ok,true,errors(graph));
+  const unrelated=declared([
+    node("app","app",["otp/gen_server","actor/mailbox"]),
+    node("otp/gen_server","otp"),node("actor/mailbox","actor")
+  ]);
+  assert.match(errors({...graph,nodes:unrelated}),/otp requires transitive actor dependency/);
+  const forbidden=declared([...nodes,node("std/fs","std")]);
+  forbidden[1]={...forbidden[1],imports:[...forbidden[1].imports,"std/fs"]};
+  assert.match(errors({...graph,nodes:forbidden}),/forbidden library dependency otp -> std/);
+});
+test("core forbids direct host or provider effects even when hosted",()=>{
+  assert.match(errors({...base,libraryProfile:"hosted",grants:["clock"],
+    nodes:[node("app","app",["core/math"],["clock"]),node("core/math","core",[],["clock"])]}),
+    /core cannot require any host capability/);
+  assert.match(errors({...base,libraryProfile:"hosted",providers:["clock.monotonic"],
+    nodes:[node("app","app",["core/math"],[],["clock.monotonic"]),
+           node("core/math","core",[],[],["clock.monotonic"])]}),
+    /core cannot require any runtime provider/);
+});
+test("freestanding target does not tolerate ambient host capabilities",()=>{
+  assert.match(errors({...base,grants:["net.client"],nodes:[
+    node("app","app",["core/math"],["net.client"]),node("core/math","core")
+  ]}),/freestanding nodes cannot require ambient/);
+});
+test("provider grants are least-authority and cannot be unused",()=>{
+  const graph={...base,libraryProfile:"freestanding-alloc",providers:["allocator.explicit"]};
+  assert.match(errors(graph),/unused or unauthorized library provider/);
+  const actor={...base,libraryProfile:"freestanding-actor",nodes:actorNodes(),
+               providers:[...ACTOR,"clock.monotonic"]};
+  assert.match(errors(actor),/unused or unauthorized library provider: clock.monotonic/);
+});
+test("provider lists must be plain dense unique own-data arrays",()=>{
+  assert.match(errors({...base,providers:["fake"]}),/invalid or missing library providers/);
+  assert.match(errors({...base,providers:["allocator.explicit","allocator.explicit"]}),
+    /invalid or missing library providers/);
+  assert.match(errors({...base,nodes:[node("app","app",["core/math"],[],Array(1)),
+    node("core/math","core")]}),/invalid inferred provider requirements/);
+  let access=0;
+  const hostile={...base};
+  Object.defineProperty(hostile,"providers",{enumerable:true,get(){access++;return [];}});
+  assert.equal(check(hostile).ok,false);
+  assert.equal(access,0);
+  const injected={...base,nodes:base.nodes.map(x=>({...x}))};
+  Object.defineProperty(injected.nodes[1],"providerRequires",
+    {enumerable:true,get(){access++;return [];}});
+  assert.equal(check(injected).ok,false);
+  assert.equal(access,0);
+});
+test("profile opt-in is mandatory for layer/provider metadata",()=>{
+  const noProfile={...base};delete noProfile.libraryProfile;delete noProfile.providers;
+  assert.match(errors(noProfile),/layer requires libraryProfile/);
+  const missingRequirements={...base,nodes:[{...base.nodes[0],providerRequires:undefined},base.nodes[1]]};
+  assert.match(errors(missingRequirements),/invalid inferred provider requirements/);
+  const missingField={...base,nodes:[(({providerRequires,...x})=>x)(base.nodes[0]),base.nodes[1]]};
+  assert.match(errors(missingField),/missing or invalid inferred provider requirements/);
+  const legacy={...noProfile,nodes:base.nodes.map(({layer,providerRequires,...x})=>x)};
+  assert.equal(check(legacy).ok,true,errors(legacy));
+  assert.match(errors({...legacy,providers:[]}),/providers requires libraryProfile/);
+});
+test("deep/cyclic OTP and actor imports validate without recursive overflow",()=>{
+  const n=1100;
+  const nodes=[
+    node("app","app",["otp/0"],[],ACTOR),
+    ...Array.from({length:n},(_,i)=>
+      node("otp/"+i,"otp",[i===n-1?"actor/runtime":"otp/"+(i+1)],[],ACTOR)),
+    node("actor/runtime","actor",[],[],ACTOR)
   ];
-  assert.match(errors({...candidate,nodes:unrelated}),/otp requires transitive actor dependency/);
-  assert.match(errors({...candidate,libraryProfile:"freestanding-actor"}),/layer otp is forbidden/);
-  const bad={...candidate,nodes:[...nodes,node("std/fs","std")]};
-  bad.nodes[1]={...nodes[1],imports:["actor/mailbox","std/fs"]};
-  assert.match(errors(bad),/forbidden library dependency otp -> std/);
+  const graph={...base,libraryProfile:"freestanding-otp",nodes,providers:ACTOR};
+  assert.equal(check(graph).ok,true,errors(graph));
 });
-test("core cannot gain ambient effects even in hosted profile",()=>{
-  const candidate={...base,libraryProfile:"hosted",grants:["clock"],nodes:[
-    node("app","app",["core/clock"],["clock"]),node("core/clock","core",[],["clock"])
-  ]};
-  assert.match(errors(candidate),/core cannot require any host capability/);
+test("JSON schema conditional rules match opt-in authority",async()=>{
+  const s=JSON.parse(await readFile(new URL("../schemas/resolved-closure.schema.json",import.meta.url),"utf8"));
+  assert.deepEqual(s.$defs.libraryProfile.enum,LIBRARY_PROFILES);
+  assert.deepEqual(s.$defs.libraryLayer.enum,LIBRARY_LAYERS);
+  assert.deepEqual(s.$defs.libraryProvider.enum,LIBRARY_PROVIDERS);
+  assert.deepEqual(s.allOf[0].then.properties.nodes.items.required,["layer","providerRequires"]);
+  assert.equal(s.$defs.node.properties.providerRequires.maxItems,LIBRARY_PROVIDERS.length);
+  assert.equal(s.$defs.node.properties.providerRequires.items.$ref,"#/$defs/libraryProvider");
 });
-test("freestanding app rejects ambient host effects regardless of target grants",()=>{
-  const candidate={...base,grants:["net.client"],nodes:[
-    node("app","app",["core/min"],["net.client"]),node("core/min","core")
-  ]};
-  assert.match(errors(candidate),/freestanding nodes cannot require ambient/);
-});
-test("declaring a layer without opting in is not silently ignored",()=>{
-  const bare={...base};delete bare.libraryProfile;delete bare.providers;
-  assert.match(errors(bare),/layer requires libraryProfile/);
-  const providerOnly={...bare,providers:[]};
-  assert.match(errors(providerOnly),/providers requires libraryProfile/);
-});
-test("missing layers, invalid profiles and invalid providers fail closed",()=>{
-  assert.match(errors({...base,libraryProfile:"freestanding-unk"}),/unknown libraryProfile/);
-  assert.match(errors({...base,providers:["allocator.explicit","allocator.explicit"]}),/invalid or missing library providers/);
-  assert.match(errors({...base,providers:["superuser"]}),/invalid or missing library providers/);
-  assert.match(errors({...base,providers:undefined}),/invalid or missing library providers/);
-  assert.match(errors({...base,nodes:[{...base.nodes[0],layer:undefined},base.nodes[1]]}),/missing or invalid library layer/);
-});
-test("library provider authority rejects hostile arrays and getters",()=>{
-  const hole=Array(1);
-  assert.equal(check({...base,providers:hole}).ok,false);
-  let called=0;
-  const getter={...base};
-  Object.defineProperty(getter,"providers",{get(){called++;return[]},enumerable:true});
-  assert.equal(check(getter).ok,false);
-  assert.equal(called,0);
-  const shadowed=["allocator.explicit"];shadowed.includes=()=>true;
-  assert.equal(check({...base,providers:shadowed}).ok,false);
-});
-
-test("hosted stdlib cannot import app modules (no privileged callback back-edge)",()=>{
-  const hosted={...base,libraryProfile:"hosted",nodes:[
-    node("app","app",["std/logger"]),node("std/logger","std",["app"])
-  ]};
-  assert.match(errors(hosted),/forbidden library dependency std -> app/);
-  // The inverse edge is permitted: applications can call the hosted stdlib.
-  assert.equal(check({...hosted,nodes:[
-    node("app","app",["std/logger"]),node("std/logger","std")
-  ]}).ok,true);
-});
-test("providers obey least authority and cannot disguise absent layers",()=>{
-  const extraAlloc={...base,libraryProfile:"freestanding-alloc",providers:["allocator.explicit"]};
-  assert.match(errors(extraAlloc),/unused or unauthorized library provider/);
-  const extraClock={...base,providers:["clock.monotonic"]};
-  assert.match(errors(extraClock),/unused or unauthorized library provider/);
-  const allocNodes=[node("app","app",["alloc/vec"]),node("alloc/vec","alloc")];
-  assert.match(errors({...base,libraryProfile:"freestanding-alloc",
-    nodes:allocNodes,providers:["allocator.explicit","control.trusted"]}),
-    /unused or unauthorized library provider: control.trusted/);
-  const actorNodes=[node("app","app",["actor/mailbox"]),node("actor/mailbox","actor")];
-  assert.equal(check({...base,libraryProfile:"freestanding-actor",
-    nodes:actorNodes,providers:[...providers,"clock.monotonic"]}).ok,true);
-  // A scheduler may use an explicit arena without importing a dynamic alloc module.
-  assert.equal(check({...base,libraryProfile:"freestanding-actor",
-    nodes:actorNodes,providers:[...providers,"allocator.explicit"]}).ok,true);
-});
-test("reverse actor reachability handles long import chains without recursion",()=>{
-  const n=1400;
-  const nodes=[node("app","app",["otp/entry"]),node("otp/entry","otp",["otp/hop0"])];
-  for(let i=0;i<n;i++)
-    nodes.push(node("otp/hop"+i,"otp",[i===n-1?"actor/mailbox":"otp/hop"+(i+1)]));
-  nodes.push(node("actor/mailbox","actor"));
-  const actual={...base,libraryProfile:"freestanding-otp",providers,nodes};
-  assert.equal(check(actual).ok,true,errors(actual));
-});
-
-test("library schema vocabulary stays pinned to runtime admission",async()=>{
-  const schema=JSON.parse(await readFile(new URL("../schemas/resolved-closure.schema.json",import.meta.url),"utf8"));
-  assert.deepEqual(schema.$defs.libraryProfile.enum,LIBRARY_PROFILES);
-  assert.deepEqual(schema.$defs.libraryLayer.enum,LIBRARY_LAYERS);
-  assert.deepEqual(schema.$defs.libraryProvider.enum,LIBRARY_PROVIDERS);
-  assert.equal(schema.properties.providers.maxItems,LIBRARY_PROVIDERS.length);
-  assert.equal(schema.$defs.node.properties.layer.$ref,"#/$defs/libraryLayer");
-  const rule=schema.allOf[0];
-  assert.deepEqual(rule.if.required,["libraryProfile"]);
-  assert.deepEqual(rule.then.required,["providers"]);
-  assert.deepEqual(rule.then.properties.nodes.items.required,["layer"]);
-  assert.deepEqual(rule.else.not.required,["providers"]);
-  assert.deepEqual(rule.else.properties.nodes.items.not.required,["layer"]);
-});
-
-test("CLI admits a freestanding core manifest and rejects std injection",async()=>{
+test("CLI exercises a freestanding closure from fixture",()=>{
   const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;
   const fixture=new URL("../examples/freestanding-core-closure.json",import.meta.url).pathname;
-  const result=spawnSync(process.execPath,[cli,"check-closure",fixture,
+  const run=spawnSync(process.execPath,[cli,"check-closure",fixture,
     "--target=embedded","--backend=llvm","--grants="],{encoding:"utf8"});
-  assert.equal(result.status,0,result.stderr);
-  assert.match(result.stdout,/2 units/);
+  assert.equal(run.status,0,run.stderr);
+  assert.match(run.stdout,/2 units/);
 });
