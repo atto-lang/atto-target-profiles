@@ -59,7 +59,8 @@
         "android",
         "embedded",
         "fpga",
-        "asic"
+        "asic",
+        "litegraph"
       ]
     },
     "backend": {

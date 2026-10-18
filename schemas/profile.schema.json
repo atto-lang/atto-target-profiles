@@ -22,7 +22,10 @@
         "edge-wasi",
         "ios",
         "android",
-        "embedded"
+        "embedded",
+        "fpga",
+        "asic",
+        "litegraph"
       ]
     },
     "backends": {
@@ -37,7 +40,8 @@
           "javascript",
           "dex",
           "c",
-          "bytecode"
+          "bytecode",
+          "hdl"
         ]
       }
     },

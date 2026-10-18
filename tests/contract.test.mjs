@@ -7,7 +7,7 @@ import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
 const good={schemaVersion:1,entry:"app",target:"browser",backend:"wasm",grants:["clock","net.client"],nodes:[{id:"app",targets:["browser","server"],requires:["clock","net.client"],imports:["dep"]},{id:"dep",targets:["browser","server"],requires:["net.client"],imports:[]}]};
 const check=data=>validateClosure(data,profiles);
-test("eight versioned target profiles conform to vocabulary",()=>assert.deepEqual(validateRegistry(profiles),{ok:true,errors:[]}));
+test("versioned target profiles conform to vocabulary",()=>assert.deepEqual(validateRegistry(profiles),{ok:true,errors:[]}));
 test("portable graph passes",()=>assert.equal(check(good).ok,true));
 test("cycles terminate safely when both directions declare transitive requirements",()=>assert.equal(check({...good,nodes:[good.nodes[0],{...good.nodes[1],requires:good.nodes[0].requires,imports:["app"]}]}).ok,true));
 test("import target coverage is checked across all promised targets",()=>{const r=check({...good,nodes:[good.nodes[0],{...good.nodes[1],targets:["browser"]}]});assert.match(r.errors.join("\n"),/imported targets/)});
@@ -222,5 +222,23 @@ test("FPGA/ASIC pure import closure admitted to HDL; no OS capability grants",()
   assert.equal(check({...pure,grants:["heap"]}).ok,false);
   assert.equal(check({...pure,nodes:[{...pure.nodes[0],requires:["heap"]},pure.nodes[1]]}).ok,false);
   assert.equal(check({...pure,nodes:[{...pure.nodes[0],imports:["dynamic"]},pure.nodes[1]]}).ok,false);
+ }
+});
+
+test("LiteGraph profile is Wasm-only and excludes ambient host authority",()=>{
+ const p=profiles.find(x=>x.name==="litegraph");
+ assert.ok(p,"litegraph profile missing");
+ assert.deepEqual(p.backends,["wasm"]);
+ assert.ok(p.capabilities.includes("heap"));
+ for(const denied of ["gc","fs.read","fs.write","dynamic.code","interop.native","interop.java","threads"])
+  assert.equal(p.capabilities.includes(denied),false,denied+" must stay fail-closed");
+ const graph={schemaVersion:1,entry:"actor",target:"litegraph",backend:"wasm",
+  grants:["clock","heap"],nodes:[{id:"actor",targets:["litegraph"],requires:["clock","heap"],imports:[]}]};
+ assert.equal(validateClosure(graph,profiles).ok,true);
+ assert.equal(validateClosure({...graph,backend:"llvm"},profiles).ok,false);
+ assert.equal(validateClosure({...graph,grants:[]},profiles).ok,false);
+ for(const cap of ["gc","fs.read","fs.write","dynamic.code","interop.native","interop.java","threads"]) {
+  const bad={...graph,grants:[cap],nodes:[{id:"actor",targets:["litegraph"],requires:[cap],imports:[]}]};
+  assert.equal(validateClosure(bad,profiles).ok,false);
  }
 });

@@ -27,3 +27,7 @@ The admission checker consumes a **versioned, already resolved, pinned import gr
 5. Keep the schema vocabulary consistent with Java admission PR #586; LLVM admission PR #74 closed unmerged.
 
 See https://ores-truffle-oreslang.github.io/logs/2/
+
+### LiteGraph
+
+`litegraph` is a Wasm-only policy upper bound for LiteGraph deployments. It permits explicit clock, randomness, network and heap capabilities; it does not grant them. Filesystem, GC, threads, dynamic code and native/Java interop remain denied. Deployment must supply explicit grants and enforce them at runtime. This registry entry is not runtime execution certification.
