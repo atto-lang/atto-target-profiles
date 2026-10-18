@@ -44,6 +44,10 @@ supported executable backend targets.
   six OTP behaviours are a separate implementation milestone.
 - `std` is admitted only in `hosted`; even there, `core`
   cannot depend on higher layers.
+  A hosted `std` unit may explicitly require `allocator.explicit` or
+  `clock.monotonic` without importing actor/alloc modules. This never grants
+  `control.trusted`, `executor.explicit`, or `mailbox.bounded` by itself,
+  and the importer must declare the same required provider.
 - Compiler-owned `std` must never import application modules (`std -> app` is
   forbidden), including on hosted platforms.
 - Every `otp` unit must have a genuine transitive import path to an `actor`
