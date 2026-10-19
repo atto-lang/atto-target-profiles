@@ -11,8 +11,14 @@ const MAX_GRAPH_BYTES=16*1024*1024;
 // cumulative bound even when an attacker grows a regular file after fstat.
 // Final-component symlinks cannot select a different authority-bearing graph.
 async function readGraph(path) {
+ // Silent fallback to 0 would turn a non-blocking, no-symlink security
+ // boundary into a potentially blocking open on unsupported platforms.
+ // Reject the host instead of weakening the file-origin policy.
+ if(!Number.isInteger(constants.O_NONBLOCK) ||
+    !Number.isInteger(constants.O_NOFOLLOW))
+   throw Error("secure graph file admission is unsupported on this host");
  const flags=constants.O_RDONLY|constants.O_NONBLOCK|
-   (constants.O_CLOEXEC||0)|(constants.O_NOFOLLOW||0);
+   (constants.O_CLOEXEC||0)|constants.O_NOFOLLOW;
  const fd=await open(path,flags);
  try {
   const stat=await fd.stat();
