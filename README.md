@@ -47,4 +47,12 @@ in `examples/bpf-xdp-{constant,packet}-closure.json` exercise the real
 policy CLI without importing private compiler source or claiming matching
 compiler/ELF provenance.
 
+Input admission: the `check-closure` CLI rejects final-component symlinks,
+special files, malformed UTF-8, UTF-8 BOMs, JSON nesting above 128, and
+duplicate object member names at any depth (including escaped Unicode-equivalent
+names). Its scan precedes `JSON.parse` so a last-wins duplicate cannot
+silently replace an earlier authority declaration. Parser validation is not a
+digital signature or source-provenance guarantee. The 16 MiB read bound and
+4096-node graph budgets remain independent.
+
 Both profiles require pinned compiler/target evidence and runtime enforcement. An upper-bound registry PASS is never an executed program, eBPF verifier result, deadline proof or hardware/physical signoff. See LLVM source PR #544 (BPF) and #660 (CGL), and Java source PR #1442 (CGL). Do not merge this change until downstream profile consumers and schema version-1 compatibility are reviewed; the vocabulary is expanded without changing the schema number.
