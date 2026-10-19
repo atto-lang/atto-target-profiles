@@ -242,3 +242,40 @@ test("LiteGraph profile is Wasm-only and excludes ambient host authority",()=>{
   assert.equal(validateClosure(bad,profiles).ok,false);
  }
 });
+
+
+test("eBPF policy denies ambient OS authority and requires packet-read grant",()=>{
+ const bpf=profiles.find(p=>p.name==="ebpf");
+ assert.ok(bpf);
+ assert.deepEqual(bpf.backends,["llvm"]);
+ assert.deepEqual(bpf.capabilities,["bpf.packet.read"]);
+ const node={id:"filter",targets:["ebpf"],requires:[],imports:[]};
+ const graph={schemaVersion:1,entry:"filter",target:"ebpf",backend:"llvm",grants:[],nodes:[node]};
+ assert.equal(check(graph).ok,true);
+ for(const denied of ["heap","gc","threads","interop.native","dynamic.code","fs.read","net.server"]){
+  assert.equal(check({...graph,grants:[denied],nodes:[{...node,requires:[denied]}]}).ok,false,denied);
+ }
+ assert.equal(check({...graph,backend:"hdl"}).ok,false);
+ assert.equal(check({...graph,nodes:[{...node,requires:["bpf.packet.read"]}]}).ok,false);
+ const packet={...graph,grants:["bpf.packet.read"],nodes:[{...node,requires:["bpf.packet.read"]}]};
+ assert.equal(check(packet).ok,true,check(packet).errors.join("; "));
+ const imported={...packet,nodes:[{...packet.nodes[0],imports:["reader"]},
+  {id:"reader",targets:["ebpf"],requires:["bpf.packet.read"],imports:[]}]};
+ assert.equal(check(imported).ok,true,check(imported).errors.join("; "));
+ assert.equal(check({...imported,nodes:[{...imported.nodes[0],requires:[]},imported.nodes[1]]}).ok,false);
+});
+
+test("carrier Linux is not a hardware backend or a kernel-BPF profile",()=>{
+ const carrier=profiles.find(p=>p.name==="carrier-linux");
+ assert.ok(carrier);
+ assert.deepEqual(carrier.backends,["llvm","graal"]);
+ for(const forbidden of ["bpf.packet.read","device.gpio","device.camera","interop.java"])
+  assert.equal(carrier.capabilities.includes(forbidden),false);
+ const node={id:"main",targets:["carrier-linux"],requires:["threads","heap"],imports:[]};
+ const graph={schemaVersion:1,entry:"main",target:"carrier-linux",backend:"llvm",grants:["threads","heap"],nodes:[node]};
+ assert.equal(check(graph).ok,true,check(graph).errors.join("; "));
+ for(const backend of ["hdl","wasm","javascript","dex"])
+  assert.equal(check({...graph,backend}).ok,false);
+ assert.equal(check({...graph,grants:[]}).ok,false);
+ assert.equal(check({...graph,grants:["threads","heap","bpf.packet.read"]}).ok,false);
+});
