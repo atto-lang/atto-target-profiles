@@ -25,7 +25,7 @@ test("authority-bearing profile JSON rejects duplicates, BOM and invalid UTF-8",
    ['{"schemaVersion":1,"name":"ebpf","name":"server","backends":["llvm"],"capabilities":[]}',/duplicate object key/],
    ['{"name":"ebpf","na\\u006de":"server"}',/duplicate object key/],
    ['{"name":"ebpf","capabilities":["clock"],"capabilities":["heap"]}',/duplicate object key/],
-   ['\\uFEFF'+valid,/JSON BOM/],
+   [String.fromCharCode(0xfeff)+valid,/JSON BOM/],
   ]){
    await writeFile(path,source);
    await assert.rejects(readProfileFile(path),reason);
@@ -50,12 +50,15 @@ test("registry loader rejects final-component symlinks and directories",{
   const fifo=join(dir,"profile.fifo");
   const mk=spawnSync("mkfifo",[fifo],{encoding:"utf8",timeout:3000});
   assert.equal(mk.status,0,mk.stderr);
-  await assert.rejects(
-   Promise.race([
-    readProfileFile(fifo),
-    new Promise((_,reject)=>setTimeout(()=>reject(Error("registry FIFO timed out")),3000))
-   ]),
-   /regular file/
-  );
+  // A subprocess timeout makes a blocking FIFO regression fail boundedly
+  // without leaving an uncancelled timer or stuck file read in this test.
+  const moduleUrl=new URL("../src/load-registry.mjs",import.meta.url).href;
+  const code="import {readProfileFile} from "+JSON.stringify(moduleUrl)+";"+
+    "try{await readProfileFile(process.argv[1]);process.exit(3)}"+
+    "catch(e){process.exit(/regular file/.test(e.message)?0:4)}";
+  const outcome=spawnSync(process.execPath,
+    ["--input-type=module","--eval",code,fifo],
+    {encoding:"utf8",timeout:3000});
+  assert.equal(outcome.status,0,outcome.stderr||String(outcome.error));
  }finally{await rm(dir,{recursive:true,force:true})}
 });
