@@ -35,7 +35,7 @@ const dataOnly=o=>{
     for(const key of Reflect.ownKeys(o)){
       if(typeof key!=="string")return false;
       const descriptor=Object.getOwnPropertyDescriptor(o,key);
-      if(!descriptor||!Object.hasOwn(descriptor,"value"))return false;
+      if(!descriptor||!Object.hasOwn(descriptor,"value")||descriptor.enumerable!==true)return false;
     }
     return true;
   }catch{
