@@ -393,3 +393,25 @@ test("compiler target identity and ungranted eBPF closure cannot be silently rew
   }
  } finally {await rm(dir,{recursive:true,force:true})}
 });
+
+test("both v1 JSON schemas pin the exact runtime profile vocabulary",async()=>{
+ const profile=JSON.parse(await readFile(new URL("../schemas/profile.schema.json",import.meta.url),"utf8"));
+ const closure=JSON.parse(await readFile(new URL("../schemas/resolved-closure.schema.json",import.meta.url),"utf8"));
+ assert.deepEqual(profile.properties.name.enum,ENVIRONMENTS,
+  "profile.schema environment enum must match runtime");
+ assert.deepEqual(profile.properties.backends.items.enum,BACKENDS,
+  "profile.schema backend enum must match runtime");
+ assert.deepEqual(profile.properties.capabilities.items.enum,CAPABILITIES,
+  "profile.schema capability enum must match runtime");
+ assert.deepEqual(closure.$defs.environment.enum,ENVIRONMENTS,
+  "resolved-closure environment enum must match runtime");
+ assert.deepEqual(closure.$defs.backend.enum,BACKENDS,
+  "resolved-closure backend enum must match runtime");
+ assert.deepEqual(closure.$defs.capability.enum,CAPABILITIES,
+  "resolved-closure capability enum must match runtime");
+ for(const p of profiles){
+  assert.ok(profile.properties.name.enum.includes(p.name),p.name);
+  assert.ok(p.backends.every(x=>profile.properties.backends.items.enum.includes(x)),p.name+" backend");
+  assert.ok(p.capabilities.every(x=>profile.properties.capabilities.items.enum.includes(x)),p.name+" capability");
+ }
+});
