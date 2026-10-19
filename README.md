@@ -37,4 +37,14 @@ See https://ores-truffle-oreslang.github.io/logs/2/
 - `ebpf`: LLVM BPF compilation target **metadata only**, not a verifier-loaded program. The only potential external effect is `bpf.packet.read` for verifier-bounded packet reads. The stage-0 constant-action programs require **no grants**. No heap, GC, OS threads, blocking I/O, dynamic code, arbitrary native interop, map access, helpers or kfuncs are granted. A requested packet read MUST have an explicitly inferred effect and an independent program-type/attachment verifier gate. The current resolved-closure format cannot establish valid eBPF attach ABI, packet pointer provenance, bytecode budgets or kernel verifier admission.
 - `carrier-linux`: LLVM/Graal Linux host compatibility metadata (soft-real-time/availability **candidate only**). It allows an explicitly granted subset of OS capabilities but cannot prove PREEMPT_RT behavior, deterministic latency, safety certification, redundancy or vendor carrier-grade qualification. `gc` and `dynamic.code` remain *possible* to accommodate Graal; they are **not** permissible evidence for a strict no-GC/no-JIT profile. Enforce the latter in a distinct, stronger admission/qualification gate.
 
+The bounded LLVM XDP follow-on compiler slice supplies a source-derived
+`--emit-target-closure` (see LLVM stacked PR based on #544). For constant
+XDP action, its `requires` list is empty; for `packet_u8` guards, the
+compiler infers `bpf.packet.read`. It must emit `grants: []` in both cases:
+a build policy is responsible for explicit grants, and an ungranted packet
+program must fail `check-closure`. The source-shaped regression fixtures
+in `examples/bpf-xdp-{constant,packet}-closure.json` exercise the real
+policy CLI without importing private compiler source or claiming matching
+compiler/ELF provenance.
+
 Both profiles require pinned compiler/target evidence and runtime enforcement. An upper-bound registry PASS is never an executed program, eBPF verifier result, deadline proof or hardware/physical signoff. See LLVM source PR #544 (BPF) and #660 (CGL), and Java source PR #1442 (CGL). Do not merge this change until downstream profile consumers and schema version-1 compatibility are reviewed; the vocabulary is expanded without changing the schema number.
