@@ -60,6 +60,22 @@ try{
   if(!file||file.startsWith("--"))throw Error("expected graph JSON path");
   const args=parseSelectors(options);
   const graph=await readGraph(file);
+  // Command-line build policy is authoritative; a compiler-declared target
+  // or backend must agree instead of being silently overwritten.
+  for(const field of ["target","backend"]){
+   if(graph!==null && typeof graph==="object" &&
+      Object.hasOwn(graph,field) && graph[field]!==args[field])
+    throw Error("resolved graph "+field+" disagrees with build selector");
+  }
+  if(args.target==="ebpf"){
+   // The narrow LLVM XDP compiler issues an *ungranted* effect declaration.
+   // Never reinterpret a caller-supplied graph with embedded privileges as
+   // an authentic compiler-produced packet policy closure.
+   if(graph===null || typeof graph!=="object" ||
+      graph.target!=="ebpf" || graph.backend!=="llvm" ||
+      !Array.isArray(graph.grants) || graph.grants.length!==0)
+    throw Error("eBPF compiler closure must declare ebpf/llvm with no grants");
+  }
   result=validateClosure({...graph,target:args.target,backend:args.backend,
     grants:args.grants?args.grants.split(","):[]},profiles);
  }else throw Error("usage: list | validate-registry | check-closure <graph.json> --target=browser --backend=wasm --grants=clock,net.client");
