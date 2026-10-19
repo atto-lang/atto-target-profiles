@@ -25,7 +25,9 @@
         "embedded",
         "fpga",
         "asic",
-        "litegraph"
+        "litegraph",
+        "ebpf",
+        "carrier-linux"
       ]
     },
     "backends": {
@@ -63,7 +65,8 @@
           "device.gpio",
           "dynamic.code",
           "heap",
-          "gc"
+          "gc",
+          "bpf.packet.read"
         ]
       }
     },
