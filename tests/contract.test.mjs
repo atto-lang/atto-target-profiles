@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {spawnSync} from "node:child_process";
-import {readFile} from "node:fs/promises";
+import {readFile,mkdtemp,writeFile,symlink,rm} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
 import {validateRegistry,validateClosure,CAPABILITIES,ENVIRONMENTS,BACKENDS} from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
@@ -296,4 +298,60 @@ test("compiler-shaped XDP closure requires explicit external grant",()=>{
  assert.equal(permitted.status,0,permitted.stderr);
  const extra=cmd("bpf-xdp-constant-closure.json","bpf.packet.read");
  assert.equal(extra.status,1,"unused privileges must be rejected");
+});
+
+test("CLI refuses duplicated or missing authority selectors",()=>{
+ const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;
+ const fixture=new URL("../examples/bpf-xdp-constant-closure.json",import.meta.url).pathname;
+ const invoke=(flags)=>spawnSync(process.execPath,[cli,"check-closure",fixture,...flags],
+   {encoding:"utf8",timeout:5000});
+ const good=invoke(["--target=ebpf","--backend=llvm","--grants="]);
+ assert.equal(good.status,0,good.stderr);
+ for(const args of [
+   ["--target=ebpf","--target=carrier-linux","--backend=llvm"],
+   ["--target=ebpf","--backend=llvm","--backend=hdl"],
+   ["--target=ebpf","--backend=llvm","--grants=","--grants=bpf.packet.read"],
+   ["--backend=llvm"],["--target=ebpf"],["--target=ebpf","--backend=llvm","--g=1"]
+ ]){
+   const result=invoke(args);
+   assert.equal(result.status,2,"unexpected selector admission: "+args+" "+result.stderr);
+   assert.equal(result.stdout,"");
+ }
+ for(const command of [["list","garbage"],["validate-registry","--backend=llvm"]]){
+  const result=spawnSync(process.execPath,[cli,...command],
+    {encoding:"utf8",timeout:5000});
+  assert.equal(result.status,2,result.stdout+" "+result.stderr);
+ }
+});
+
+test("CLI safely rejects FIFO, symlink, directory and oversized or malformed graph",{
+ skip:process.platform!=="linux"
+},async()=>{
+ const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;
+ const fixture=await readFile(new URL("../examples/bpf-xdp-constant-closure.json",import.meta.url));
+ const dir=await mkdtemp(join(tmpdir(),"ores-target-admission-"));
+ const invoke=(p)=>spawnSync(process.execPath,[
+   cli,"check-closure",p,"--target=ebpf","--backend=llvm","--grants="
+ ],{encoding:"utf8",timeout:5000});
+ try {
+  const good=join(dir,"valid.json");await writeFile(good,fixture);
+  assert.equal(invoke(good).status,0);
+  const linked=join(dir,"linked.json");await symlink(good,linked);
+  assert.equal(invoke(linked).status,2,"final-component symlink must be denied");
+  assert.equal(invoke(dir).status,2,"directory must be denied");
+  const fifo=join(dir,"named-pipe.json");
+  const mk=spawnSync("mkfifo",[fifo],{encoding:"utf8",timeout:5000});
+  assert.equal(mk.status,0,mk.stderr);
+  const result=invoke(fifo);
+  assert.equal(result.status,2,"FIFO admission must fail without blocking: "+result.stderr);
+  assert.notEqual(result.error?.code,"ETIMEDOUT","FIFO open must never hang");
+  const big=join(dir,"too-large.json");
+  await writeFile(big,Buffer.alloc(16*1024*1024+1,32));
+  const oversized=invoke(big);
+  assert.equal(oversized.status,2,oversized.stderr);
+  assert.match(oversized.stderr,/exceeds 16 MiB/);
+  const invalid=join(dir,"invalid-utf8.json");
+  await writeFile(invalid,Buffer.from([0xc0,0xaf]));
+  assert.equal(invoke(invalid).status,2,"overlong UTF-8 must fail");
+ }finally{await rm(dir,{recursive:true,force:true})}
 });
