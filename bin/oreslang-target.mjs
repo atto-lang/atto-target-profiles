@@ -4,6 +4,7 @@ import {constants} from "node:fs";
 import {TextDecoder} from "node:util";
 import {validateRegistry,validateClosure} from "../src/contract.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
+import {rejectDuplicateJsonKeys} from "../src/strict-json-keys.mjs";
 
 const MAX_GRAPH_BYTES=16*1024*1024;
 // Reject special files *before* reading, without blocking on FIFOs. Keep the
@@ -29,6 +30,7 @@ async function readGraph(path) {
    parts.push(Buffer.from(buffer.subarray(0,bytesRead)));
   }
   const decoded=new TextDecoder("utf-8",{fatal:true}).decode(Buffer.concat(parts,total));
+  rejectDuplicateJsonKeys(decoded);
   return JSON.parse(decoded);
  }finally{await fd.close()}
 }
