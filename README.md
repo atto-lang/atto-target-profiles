@@ -83,4 +83,13 @@ source/tree SHA, emitted IR/object digest, compiler binary and Linux
 verifier/attach receipts under a trusted provenance contract. None of those
 cryptographic/external evidence bindings are supplied by this pilot.
 
+The **profile registry itself** is also parsed as authority-bearing input:
+`loadProfiles()` now requires regular, non-symlink `.json` files, bounded at
+64 KiB each, with strict UTF-8, no BOM, and no duplicate object names at any
+nesting depth. Unsupported hosts must fail closed rather than silently
+dropping `O_NONBLOCK` or `O_NOFOLLOW`. A policy registry is valid only after
+both strict file parsing and `validateRegistry()` succeed. This cannot
+authenticate a mutable checkout, replace source-review provenance, or
+prevent a compromised parent directory from being swapped externally.
+
 Both profiles require pinned compiler/target evidence and runtime enforcement. An upper-bound registry PASS is never an executed program, eBPF verifier result, deadline proof or hardware/physical signoff. See LLVM source PR #544 (BPF) and #660 (CGL), and Java source PR #1442 (CGL). Do not merge this change until downstream profile consumers and schema version-1 compatibility are reviewed; the vocabulary is expanded without changing the schema number.
