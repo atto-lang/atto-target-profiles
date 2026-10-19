@@ -62,12 +62,14 @@ A trusted build controller should pin both the LLVM compiler commit and
 this registry's commit. The experimental sequence is:
 
 ```sh
+# Source fixture belongs to the pinned LLVM compiler repository.
+SOURCE=/path/to/oreslang-source.llvm/examples/xdp_packet_u8.ores
 oreslang-llvmc --target=bpfel --bpf-program=xdp \
-  --emit-target-closure examples/xdp_packet_u8.ores > xdp.closure.json
+  --emit-target-closure "$SOURCE" > xdp.closure.json
 node bin/oreslang-target.mjs check-closure xdp.closure.json \
   --target=ebpf --backend=llvm --grants=bpf.packet.read
 oreslang-llvmc --target=bpfel --bpf-program=xdp \
-  --bpf-grants=bpf.packet.read examples/xdp_packet_u8.ores > xdp.ll
+  --bpf-grants=bpf.packet.read "$SOURCE" > xdp.ll
 ```
 
 The compiler deliberately emits `grants: []` in its closure; the
