@@ -279,3 +279,21 @@ test("carrier Linux is not a hardware backend or a kernel-BPF profile",()=>{
  assert.equal(check({...graph,grants:[]}).ok,false);
  assert.equal(check({...graph,grants:["threads","heap","bpf.packet.read"]}).ok,false);
 });
+
+test("compiler-shaped XDP closure requires explicit external grant",()=>{
+ const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;
+ const root=new URL("../examples/",import.meta.url);
+ const cmd=(file,grants)=>spawnSync(process.execPath,[
+   cli,"check-closure",new URL(file,root).pathname,
+   "--target=ebpf","--backend=llvm","--grants="+grants
+ ],{encoding:"utf8"});
+ const constant=cmd("bpf-xdp-constant-closure.json","");
+ assert.equal(constant.status,0,constant.stderr);
+ const noGrant=cmd("bpf-xdp-packet-closure.json","");
+ assert.equal(noGrant.status,1,noGrant.stdout+" "+noGrant.stderr);
+ assert.match(noGrant.stderr,/missing build grants/);
+ const permitted=cmd("bpf-xdp-packet-closure.json","bpf.packet.read");
+ assert.equal(permitted.status,0,permitted.stderr);
+ const extra=cmd("bpf-xdp-constant-closure.json","bpf.packet.read");
+ assert.equal(extra.status,1,"unused privileges must be rejected");
+});
