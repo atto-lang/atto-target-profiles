@@ -355,3 +355,41 @@ test("CLI safely rejects FIFO, symlink, directory and oversized or malformed gra
   assert.equal(invoke(invalid).status,2,"overlong UTF-8 must fail");
  }finally{await rm(dir,{recursive:true,force:true})}
 });
+
+test("compiler target identity and ungranted eBPF closure cannot be silently rewritten",async()=>{
+ const cli=new URL("../bin/oreslang-target.mjs",import.meta.url).pathname;
+ const fixture=JSON.parse(await readFile(
+   new URL("../examples/bpf-xdp-packet-closure.json",import.meta.url),"utf8"));
+ const dir=await mkdtemp(join(tmpdir(),"ores-bpf-identity-"));
+ const graphPath=join(dir,"graph.json");
+ const run=(grants="bpf.packet.read",target="ebpf",backend="llvm")=>
+   spawnSync(process.execPath,[cli,"check-closure",graphPath,
+     "--target="+target,"--backend="+backend,"--grants="+grants],
+     {encoding:"utf8",timeout:5000});
+ try{
+  await writeFile(graphPath,JSON.stringify(fixture));
+  const valid=run();
+  assert.equal(valid.status,0,valid.stderr);
+  const bad=[
+   {...fixture,target:"carrier-linux"},
+   {...fixture,backend:"graal"},
+   {...fixture,grants:["bpf.packet.read"]},
+   {...fixture,grants:null},
+   {...fixture,grants:undefined}
+  ];
+  for(const graph of bad){
+   await writeFile(graphPath,JSON.stringify(graph));
+   const result=run();
+   assert.equal(result.status,2,
+    "forged or self-granted compiler closure accepted: "+JSON.stringify(graph));
+   assert.equal(result.stdout,"");
+  }
+  await writeFile(graphPath,JSON.stringify(fixture));
+  for(const [target,backend] of [["carrier-linux","llvm"],["ebpf","graal"]]){
+   const out=run("bpf.packet.read",target,backend);
+   assert.equal(out.status,2,
+     "CLI silently rewrote compiler target/backend: "+out.stderr);
+   assert.match(out.stderr,/disagrees with build selector/);
+  }
+ } finally {await rm(dir,{recursive:true,force:true})}
+});
