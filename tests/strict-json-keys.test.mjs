@@ -55,14 +55,19 @@ test('actual target-profile CLI denies a duplicate key with no valid output', as
   try {
     const graph = '{"schemaVersion":1,"entry":"ores_xdp","entry":"ores_xdp",' +
       '"nodes":[{"id":"ores_xdp","targets":["ebpf"],"requires":[],"imports":[]}]}';
-    await writeFile(path, graph, 'utf8');
     const cli = new URL('../bin/oreslang-target.mjs', import.meta.url).pathname;
-    const result = spawnSync(process.execPath,
-      [cli, 'check-closure', path, '--target=ebpf', '--backend=llvm', '--grants='],
-      {encoding:'utf8', timeout:15000});
-    assert.equal(result.status, 2, result.stderr);
-    assert.equal(result.stdout, '');
-    assert.match(result.stderr, /duplicate object key/);
+    for (const [invalid, diagnostic] of [
+      [graph, /duplicate object key/],
+      ['\uFEFF' + graph.replace(',"entry":"ores_xdp"', ''), /JSON BOM/]
+    ]) {
+      await writeFile(path, invalid, 'utf8');
+      const result = spawnSync(process.execPath,
+        [cli, 'check-closure', path, '--target=ebpf', '--backend=llvm', '--grants='],
+        {encoding:'utf8', timeout:15000});
+      assert.equal(result.status, 2, result.stderr);
+      assert.equal(result.stdout, '');
+      assert.match(result.stderr, diagnostic);
+    }
   } finally {
     await rm(folder, {recursive:true, force:true});
   }
