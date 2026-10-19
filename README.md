@@ -55,4 +55,30 @@ silently replace an earlier authority declaration. Parser validation is not a
 digital signature or source-provenance guarantee. The 16 MiB read bound and
 4096-node graph budgets remain independent.
 
+### Bounded eBPF build admission sequence
+
+Compiler-produced XDP closure manifests are declarations, **not authority**.
+A trusted build controller should pin both the LLVM compiler commit and
+this registry's commit. The experimental sequence is:
+
+```sh
+oreslang-llvmc --target=bpfel --bpf-program=xdp \
+  --emit-target-closure examples/xdp_packet_u8.ores > xdp.closure.json
+node bin/oreslang-target.mjs check-closure xdp.closure.json \
+  --target=ebpf --backend=llvm --grants=bpf.packet.read
+oreslang-llvmc --target=bpfel --bpf-program=xdp \
+  --bpf-grants=bpf.packet.read examples/xdp_packet_u8.ores > xdp.ll
+```
+
+The compiler deliberately emits `grants: []` in its closure; the
+`--grants=bpf.packet.read` argument comes from an independently approved
+build policy. A compiler closure declaring the wrong target/backend or
+pre-populated grants is rejected before approval. The LLVM
+`--bpf-grants=bpf.packet.read` argument is **only** a local emission
+acknowledgement, not authorization: a caller can pass it without running
+the checker. Production build orchestration must bind approved policy,
+source/tree SHA, emitted IR/object digest, compiler binary and Linux
+verifier/attach receipts under a trusted provenance contract. None of those
+cryptographic/external evidence bindings are supplied by this pilot.
+
 Both profiles require pinned compiler/target evidence and runtime enforcement. An upper-bound registry PASS is never an executed program, eBPF verifier result, deadline proof or hardware/physical signoff. See LLVM source PR #544 (BPF) and #660 (CGL), and Java source PR #1442 (CGL). Do not merge this change until downstream profile consumers and schema version-1 compatibility are reviewed; the vocabulary is expanded without changing the schema number.
