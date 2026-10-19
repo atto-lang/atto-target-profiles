@@ -29,7 +29,7 @@ async function readGraph(path) {
    if(total>MAX_GRAPH_BYTES)throw Error("resolved graph exceeds 16 MiB");
    parts.push(Buffer.from(buffer.subarray(0,bytesRead)));
   }
-  const decoded=new TextDecoder("utf-8",{fatal:true}).decode(Buffer.concat(parts,total));
+  const decoded=new TextDecoder("utf-8",{fatal:true,ignoreBOM:true}).decode(Buffer.concat(parts,total));
   rejectDuplicateJsonKeys(decoded);
   return JSON.parse(decoded);
  }finally{await fd.close()}
