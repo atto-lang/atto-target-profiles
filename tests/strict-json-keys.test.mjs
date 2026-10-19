@@ -49,6 +49,26 @@ test('seeded unique/duplicate JSON key differential matrix', () => {
   }
 });
 
+
+test('seeded valid nested arrays, objects and escaped names remain accepted', () => {
+  let seed=20261019;
+  const next=() => ((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
+  const words=['a','b','escaped " key','slash\\\\key','🔥','\\t','\\u0000','__proto__','line\\nfeed'];
+  const word=()=>words[Math.floor(next()*words.length)];
+  const generate=depth=>{
+    const choice=Math.floor(next()*(depth?7:4));
+    if(choice===0)return null;
+    if(choice===1)return (next()*500)|0;
+    if(choice===2)return next()<.5;
+    if(choice===3)return word();
+    if(choice===4)return Array.from({length:Math.floor(next()*6)},()=>generate(depth-1));
+    const obj=Object.create(null);
+    for(let i=0,n=Math.floor(next()*6);i<n;i++)obj[word()+i]=generate(depth-1);
+    return obj;
+  };
+  for(let i=0;i<2000;i++)accepts(JSON.stringify(generate(6)));
+});
+
 test('actual target-profile CLI denies a duplicate key with no valid output', async () => {
   const folder = await mkdtemp(join(tmpdir(), 'ores-duplicate-closure-'));
   const path = join(folder, 'closure.json');
