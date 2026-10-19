@@ -1,0 +1,27 @@
+# Diagnostic only: deliberately NO checkout, private source read, secrets or artifacts.
+name: Source org no-checkout runner diagnosis
+on:
+  push:
+    branches:
+      - ci/source-org-runner-probe-20261019
+  pull_request:
+    paths:
+      - .github/workflows/runner-diagnosis.yml
+permissions:
+  contents: read
+jobs:
+  runner-allocation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Confirm GitHub allocated an actual runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'ORES_SOURCE_ORG_RUNNER_EXECUTED=yes'
+          uname -s -m
+          node --version
+          python3 --version
+          test "$(uname -s)" = Linux
+      - name: Local-only trivial smoke
+        run: node -e 'if (1+1 !== 2) process.exit(1)'
