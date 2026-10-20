@@ -60,7 +60,9 @@
         "embedded",
         "fpga",
         "asic",
-        "litegraph"
+        "litegraph",
+        "ebpf",
+        "carrier-linux"
       ]
     },
     "backend": {
@@ -90,7 +92,8 @@
         "device.gpio",
         "dynamic.code",
         "heap",
-        "gc"
+        "gc",
+        "bpf.packet.read"
       ]
     },
     "node": {
