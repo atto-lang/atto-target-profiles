@@ -2,9 +2,9 @@ import {types as nodeTypes} from "node:util";
 import {LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS,validateLibraryClosure} from "./library-profile.mjs";
 export {LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS};
 
-export const CAPABILITIES = Object.freeze(["clock","random","net.client","net.server","fs.read","fs.write","threads","interop.java","interop.native","device.camera","device.gpio","dynamic.code","heap","gc"]);
-export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js","edge-wasi","ios","android","embedded"]);
-export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex","c","bytecode"]);
+export const CAPABILITIES = Object.freeze(["clock","random","net.client","net.server","fs.read","fs.write","threads","interop.java","interop.native","device.camera","device.gpio","dynamic.code","heap","gc","bpf.packet.read"]);
+export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js","edge-wasi","ios","android","embedded","fpga","asic","litegraph","ebpf","carrier-linux"]);
+export const BACKENDS = Object.freeze(["llvm","graal","wasm","javascript","dex","c","bytecode","hdl"]);
 // Authority-bearing lists must be dense, own-indexed, unique JSON-like arrays.
 // Array#every skips holes, and inherited numeric entries can otherwise mask
 // absent capabilities/targets, making a malformed build graph appear valid.
@@ -37,7 +37,7 @@ const dataOnly=o=>{
     for(const key of Reflect.ownKeys(o)){
       if(typeof key!=="string")return false;
       const descriptor=Object.getOwnPropertyDescriptor(o,key);
-      if(!descriptor||!Object.hasOwn(descriptor,"value"))return false;
+      if(!descriptor||!Object.hasOwn(descriptor,"value")||descriptor.enumerable!==true)return false;
     }
     return true;
   }catch{

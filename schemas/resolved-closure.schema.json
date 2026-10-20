@@ -68,7 +68,12 @@
         "edge-wasi",
         "ios",
         "android",
-        "embedded"
+        "embedded",
+        "fpga",
+        "asic",
+        "litegraph",
+        "ebpf",
+        "carrier-linux"
       ]
     },
     "backend": {
@@ -79,7 +84,8 @@
         "javascript",
         "dex",
         "c",
-        "bytecode"
+        "bytecode",
+        "hdl"
       ]
     },
     "capability": {
@@ -97,7 +103,8 @@
         "device.gpio",
         "dynamic.code",
         "heap",
-        "gc"
+        "gc",
+        "bpf.packet.read"
       ]
     },
     "node": {
