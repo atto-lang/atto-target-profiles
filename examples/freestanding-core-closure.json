@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "entry": "firmware",
+  "target": "embedded",
+  "backend": "llvm",
+  "grants": [],
+  "libraryProfile": "freestanding-core",
+  "providers": [],
+  "nodes": [
+    {
+      "id": "firmware",
+      "layer": "app",
+      "targets": [
+        "embedded"
+      ],
+      "requires": [],
+      "imports": [
+        "core/numeric"
+      ],
+      "providerRequires": []
+    },
+    {
+      "id": "core/numeric",
+      "layer": "core",
+      "targets": [
+        "embedded"
+      ],
+      "requires": [],
+      "imports": [],
+      "providerRequires": []
+    }
+  ]
+}

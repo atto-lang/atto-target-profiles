@@ -1,4 +1,6 @@
 import {types as nodeTypes} from "node:util";
+import {LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS,validateLibraryClosure} from "./library-profile.mjs";
+export {LIBRARY_PROFILES,LIBRARY_LAYERS,LIBRARY_PROVIDERS};
 
 export const CAPABILITIES = Object.freeze(["clock","random","net.client","net.server","fs.read","fs.write","threads","interop.java","interop.native","device.camera","device.gpio","dynamic.code","heap","gc","bpf.packet.read"]);
 export const ENVIRONMENTS = Object.freeze(["server","desktop","browser","edge-js","edge-wasi","ios","android","embedded","fpga","asic","litegraph","ebpf","carrier-linux"]);
@@ -84,11 +86,19 @@ export function validateRegistry(profiles) {
   for (const name of ENVIRONMENTS) if (!seen.has(name)) errors.push("missing profile "+name);
   return {ok:errors.length===0,errors};
 }
-export function validateClosure(input,profiles) {
+// A trusted compiler/build invocation may select the library profile outside
+// the graph. Supply requiredLibraryProfile to reject a graph that drops or
+// downgrades this selection (legacy opt-in remains when omitted).
+// The graph's claimed layers/effects must still be compiler-inferred.
+export function validateClosure(input,profiles,requiredLibraryProfile=null) {
+  if(requiredLibraryProfile!==null&&
+     (typeof requiredLibraryProfile!=="string"||
+      !LIBRARY_PROFILES.includes(requiredLibraryProfile)))
+    return {ok:false,errors:["invalid build-selected library profile"]};
   const errors=[];
   if(!input||typeof input!=="object"||!dataOnly(input))
     return {ok:false,errors:["resolved graph must be an object"]};
-  const keys=["schemaVersion","nodes","entry","target","backend","grants"];
+  const keys=["schemaVersion","nodes","entry","target","backend","grants","libraryProfile","providers"];
   for(const field of Object.keys(input))
     if(!keys.includes(field))errors.push("unknown resolved graph property "+field);
   for(const field of ["schemaVersion","nodes","entry","target","backend"])
@@ -104,6 +114,25 @@ export function validateClosure(input,profiles) {
   if(typeof target!=="string")errors.push("invalid resolved graph target");
   if(typeof backend!=="string")errors.push("missing or unknown backend");
   if(errors.length)return {ok:false,errors};
+  // A libraryProfile is an explicit opt-in to the freestanding layer gate.
+  // Its provider set must be supplied as own, dense, unique data.
+  const hasLibraryProfile=Object.hasOwn(input,"libraryProfile");
+  // Never let caller-supplied graph JSON remove or change an externally
+  // selected freestanding/hosted profile. Otherwise a legacy v1 graph could
+  // bypass the opt-in policy by omitting the libraryProfile property.
+  if(requiredLibraryProfile!==null&&
+     (!hasLibraryProfile||input.libraryProfile!==requiredLibraryProfile))
+    errors.push("resolved graph libraryProfile missing or mismatched build selection");
+  if(Object.hasOwn(input,"providers")&&!hasLibraryProfile)
+    errors.push("providers requires libraryProfile");
+  if(hasLibraryProfile){
+    if(typeof input.libraryProfile!=="string"||
+       !LIBRARY_PROFILES.includes(input.libraryProfile))
+      errors.push("unknown libraryProfile");
+    if(!Object.hasOwn(input,"providers")||
+       !unique(input.providers)||!subset(input.providers,LIBRARY_PROVIDERS))
+      errors.push("invalid or missing library providers");
+  }
   // Optional authority must never be inherited through a prototype chain.
   const grants=Object.hasOwn(input,"grants")?input.grants:[];
   if(schemaVersion!==1)errors.push("unsupported or missing resolved-graph schemaVersion");
@@ -135,9 +164,30 @@ export function validateClosure(input,profiles) {
     if(!unique(node.targets)||node.targets.length===0||!subset(node.targets,ENVIRONMENTS))errors.push(node.id+": invalid targets");
     if(!unique(node.requires)||!subset(node.requires,CAPABILITIES))errors.push(node.id+": invalid requires");
     if(!unique(node.imports)||node.imports.length>256||node.imports.some(x=>x.length>512||x.includes("\u0000")))errors.push(node.id+": invalid or excessive imports");
-    for(const field of Object.keys(node))if(!["id","targets","requires","imports"].includes(field))errors.push(node.id+": unknown property "+field);
+    const hasLayer=Object.hasOwn(node,"layer");
+    const hasProviderRequires=Object.hasOwn(node,"providerRequires");
+    if(hasLibraryProfile && (!hasLayer||typeof node.layer!=="string"||
+       !LIBRARY_LAYERS.includes(node.layer)))
+      errors.push(node.id+": missing or invalid library layer");
+    if(!hasLibraryProfile && hasLayer)
+      errors.push(node.id+": node layer requires libraryProfile");
+    if(hasLibraryProfile && (!hasProviderRequires||
+       !unique(node.providerRequires)||!subset(node.providerRequires,LIBRARY_PROVIDERS)))
+      errors.push(node.id+": missing or invalid inferred provider requirements");
+    if(!hasLibraryProfile && hasProviderRequires)
+      errors.push(node.id+": provider requirements require libraryProfile");
+    for(const field of Object.keys(node))
+      if(!["id","targets","requires","imports","layer","providerRequires"].includes(field))
+        errors.push(node.id+": unknown property "+field);
   }
   if(!ids.has(entry))errors.push("missing entry "+entry);
+  if(errors.length) return {ok:false,errors};
+  if(hasLibraryProfile){
+    const libraryGate=validateLibraryClosure({
+      nodes,libraryProfile:input.libraryProfile,providers:input.providers
+    });
+    errors.push(...libraryGate.errors);
+  }
   if(errors.length) return {ok:false,errors};
   // Iterative graph traversal avoids adversarial recursion depth and ensures
   // cycles terminate. Check the promised target set of *every* import edge,
