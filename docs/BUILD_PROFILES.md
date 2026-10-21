@@ -50,6 +50,20 @@ until typed source effects and lowering are implemented. Portable kernel IR is
 reflection-free, and emitting OpenCL/device source is not evidence that a device
 provider authenticated, enqueued, completed, or retired real hardware work.
 
+The G3 physical provider is trusted runtime code only. The first admitted
+backend is OpenCL 1.2, loaded explicitly by the runtime rather than by guest
+code or reflection. Provider-owned quotas cover resident bytes, pinned host
+bytes, events, and queue slots. Pre-enqueue abort is legal only while the host
+fence pair is RESERVED; once the driver returns an accepted event, only
+completion/cancellation and verified quiescence may terminate it.
+
+A mock/injected OpenCL ABI validates state-machine behavior but is not GPU
+execution evidence. Real GPU evidence requires a compatible physical device,
+the exact submitted device event, successful explicit download/result
+verification, and physical resource release. Hard-RT may use a physical
+provider only when that provider and its queue/memory/event bounds are
+independently admitted/certified; ordinary OpenCL presence is insufficient.
+
 ## Freestanding
 
 `--freestanding` is an orthogonal constraint and may be combined with any build profile. It forbids hosted stdlib roots, OS/libc dependencies, and implicit platform providers. Any target provider must be selected explicitly.
