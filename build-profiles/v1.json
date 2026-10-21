@@ -16,7 +16,9 @@
     },
     {
       "name": "release",
-      "implies": ["dev"],
+      "implies": [
+        "dev"
+      ],
       "treeShaking": "required",
       "runtimeFeaturePruning": "required",
       "metadataPruning": "required",
@@ -29,7 +31,9 @@
     },
     {
       "name": "strict-aot",
-      "implies": ["release"],
+      "implies": [
+        "release"
+      ],
       "treeShaking": "required",
       "runtimeFeaturePruning": "required",
       "metadataPruning": "required",
@@ -42,7 +46,9 @@
     },
     {
       "name": "hard-rt",
-      "implies": ["strict-aot"],
+      "implies": [
+        "strict-aot"
+      ],
       "treeShaking": "required",
       "runtimeFeaturePruning": "required",
       "metadataPruning": "required",
@@ -64,6 +70,16 @@
       "osDependencies": "forbidden",
       "libcDependency": "forbidden",
       "targetProviders": "explicit-only"
+    },
+    "accelerators": {
+      "providerDiscovery": "explicit-only",
+      "implicitTransfers": "forbidden",
+      "implicitCpuFallback": "forbidden",
+      "sourceForgeableAuthority": "forbidden",
+      "cancellationQuiescence": "verified-fence-only",
+      "strictAotKernelVariants": "precompiled-only",
+      "hardRtResourceBounds": "required",
+      "hardRtProviderCompilation": "forbidden-in-execution-phase"
     }
   }
 }

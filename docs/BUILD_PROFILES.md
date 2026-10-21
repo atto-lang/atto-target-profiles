@@ -21,6 +21,28 @@ Compile-time inspection is not runtime reflection. Metadata generated at build t
 
 The convenience CLI spellings are `--release`, `--strict-aot`, and `--hard-rt`. They are mutually exclusive selectors; inheritance is semantic, so `--hard-rt` already includes the requirements of `strict-aot` and `release`.
 
+## Accelerator policy
+
+Heterogeneous compute follows the same closed-world rules as the rest of the
+runtime. Providers are explicitly registered; source code cannot forge
+`Device`, `Buffer<T>`, `Fence`, or `KernelContext` authority; CPU/device
+transfers are explicit; and missing/incompatible accelerators never trigger an
+implicit CPU fallback.
+
+For `strict-aot`, every Oreslang accelerator kernel variant must be selected
+and compiled ahead of time. Runtime selection among compatible precompiled
+variants is allowed, but Oreslang must not JIT a missing kernel. Vendor-driver
+internal compilation of a precompiled portable device artifact is outside this
+language-level rule and must still obey the selected provider/profile contract.
+
+For `hard-rt`, accelerator queue depth, memory reservations, transfer bounds,
+kernel completion policy, and timeout/WCET evidence must be bounded and admitted.
+Provider/driver compilation or first-use preparation is forbidden inside the
+admitted hard-real-time execution phase unless it has already been completed
+outside that phase. Runtime selection among prepared variants remains allowed.
+Cancellation alone is never proof of quiescence; reclamation requires an
+authenticated completion/reset fence.
+
 ## Freestanding
 
 `--freestanding` is an orthogonal constraint and may be combined with any build profile. It forbids hosted stdlib roots, OS/libc dependencies, and implicit platform providers. Any target provider must be selected explicitly.

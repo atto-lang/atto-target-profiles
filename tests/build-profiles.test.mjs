@@ -24,4 +24,16 @@ test("build-profile v1 inheritance and reflection policy are fail-closed", async
   assert.equal(byName.get("hard-rt").gc, "forbidden");
   assert.equal(byName.get("hard-rt").wcetEvidence, "required");
   assert.equal(contract.constraints.freestanding.libcDependency, "forbidden");
+  const accelerators = contract.constraints.accelerators;
+  assert.equal(accelerators.providerDiscovery, "explicit-only");
+  assert.equal(accelerators.implicitTransfers, "forbidden");
+  assert.equal(accelerators.implicitCpuFallback, "forbidden");
+  assert.equal(accelerators.sourceForgeableAuthority, "forbidden");
+  assert.equal(accelerators.cancellationQuiescence, "verified-fence-only");
+  assert.equal(accelerators.strictAotKernelVariants, "precompiled-only");
+  assert.equal(accelerators.hardRtResourceBounds, "required");
+  assert.equal(
+    accelerators.hardRtProviderCompilation,
+    "forbidden-in-execution-phase",
+  );
 });
