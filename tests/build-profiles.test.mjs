@@ -46,4 +46,13 @@ test("build-profile v1 inheritance and reflection policy are fail-closed", async
     accelerators.gpuArtifactEmissionEvidence,
     "not-execution-evidence",
   );
+  assert.equal(accelerators.physicalProviderBackend, "opencl-1.2");
+  assert.equal(accelerators.physicalProviderGuestLoad, "forbidden");
+  assert.equal(accelerators.providerQuotaAuthority, "provider-owned");
+  assert.equal(accelerators.providerPreEnqueueAbort, "reserved-only");
+  assert.equal(
+    accelerators.realGpuExecutionEvidence,
+    "exact-device-event-plus-download",
+  );
+  assert.equal(accelerators.hardRtPhysicalProvider, "bounded-certified-only");
 });
