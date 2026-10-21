@@ -43,6 +43,13 @@ outside that phase. Runtime selection among prepared variants remains allowed.
 Cancellation alone is never proof of quiescence; reclamation requires an
 authenticated completion/reset fence.
 
+The G2 CPU reference provider is an explicit conformance backend only. It must
+never be selected implicitly when a GPU request is unavailable or rejected, and
+it is not hard-realtime evidence. Source accelerator syntax remains fail-closed
+until typed source effects and lowering are implemented. Portable kernel IR is
+reflection-free, and emitting OpenCL/device source is not evidence that a device
+provider authenticated, enqueued, completed, or retired real hardware work.
+
 ## Freestanding
 
 `--freestanding` is an orthogonal constraint and may be combined with any build profile. It forbids hosted stdlib roots, OS/libc dependencies, and implicit platform providers. Any target provider must be selected explicitly.
