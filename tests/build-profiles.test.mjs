@@ -32,4 +32,8 @@ test("build-profile v1 inheritance and reflection policy are fail-closed", async
   assert.equal(accelerators.cancellationQuiescence, "verified-fence-only");
   assert.equal(accelerators.strictAotKernelVariants, "precompiled-only");
   assert.equal(accelerators.hardRtResourceBounds, "required");
+  assert.equal(
+    accelerators.hardRtProviderCompilation,
+    "forbidden-in-execution-phase",
+  );
 });
