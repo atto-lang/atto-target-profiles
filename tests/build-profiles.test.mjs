@@ -36,4 +36,14 @@ test("build-profile v1 inheritance and reflection policy are fail-closed", async
     accelerators.hardRtProviderCompilation,
     "forbidden-in-execution-phase",
   );
+  assert.equal(
+    accelerators.sourceAcceleratorSyntax,
+    "fail-closed-until-typed-effects",
+  );
+  assert.equal(accelerators.cpuReferenceProvider, "explicit-test-only");
+  assert.equal(accelerators.kernelIrReflection, "forbidden");
+  assert.equal(
+    accelerators.gpuArtifactEmissionEvidence,
+    "not-execution-evidence",
+  );
 });
