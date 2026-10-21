@@ -37,6 +37,9 @@ language-level rule and must still obey the selected provider/profile contract.
 
 For `hard-rt`, accelerator queue depth, memory reservations, transfer bounds,
 kernel completion policy, and timeout/WCET evidence must be bounded and admitted.
+Provider/driver compilation or first-use preparation is forbidden inside the
+admitted hard-real-time execution phase unless it has already been completed
+outside that phase. Runtime selection among prepared variants remains allowed.
 Cancellation alone is never proof of quiescence; reclamation requires an
 authenticated completion/reset fence.
 
