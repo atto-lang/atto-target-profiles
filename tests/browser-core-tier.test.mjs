@@ -22,7 +22,7 @@ const diagnostics=g=>result(g).errors.join('\n');
 
 test('pure core is admitted with zero OS/provider privileges on browser JS, edge JS, Wasm and native',()=>{
   for(const [target,backend] of [
-    ['browser','javascript'],['edge-js','javascript'],
+    ['browser','javascript'],['edge-js','javascript'],['server','javascript'],
     ['browser','wasm'],['edge-js','wasm'],
     ['embedded','llvm']
   ]){
@@ -97,4 +97,31 @@ test('freestanding consumer cannot gain hosted std merely by listing it as a dep
     node('core/minmax','core','browser')
   ]};
   assert.match(diagnostics(graph),/library layer std is forbidden/);
+});
+
+test('Node server JavaScript can admit pure core without granting hosted Node authority',()=>{
+  const base=closure('server','javascript');
+  assert.equal(result(base).ok,true,diagnostics(base));
+  for(const capability of ['fs.read','fs.write','net.client','threads','interop.native']){
+    assert.match(diagnostics({...base,grants:[capability]}),/unused build grants/,
+      capability+' was improperly granted without source demand');
+  }
+  const hosted={
+    ...closure('server','javascript','hosted'),
+    grants:['fs.read'],
+    nodes:[
+      node('app','app','server',['std/fs'],['fs.read']),
+      node('std/fs','std','server',['core/minmax'],['fs.read']),
+      node('core/minmax','core','server')
+    ]
+  };
+  assert.equal(result(hosted).ok,true,diagnostics(hosted));
+  assert.match(diagnostics({...hosted,grants:[]}),/missing build grants/);
+  const coreReadsFilesystem={...hosted,nodes:[
+    node('app','app','server',['core/minmax'],['fs.read']),
+    node('core/minmax','core','server',['std/fs'],['fs.read']),
+    node('std/fs','std','server',[],['fs.read'])
+  ]};
+  assert.match(diagnostics(coreReadsFilesystem),/core cannot require any host capability/);
+  assert.match(diagnostics(coreReadsFilesystem),/forbidden library dependency core -> std/);
 });
