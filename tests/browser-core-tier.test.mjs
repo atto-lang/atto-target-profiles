@@ -125,3 +125,31 @@ test('Node server JavaScript can admit pure core without granting hosted Node au
   assert.match(diagnostics(coreReadsFilesystem),/core cannot require any host capability/);
   assert.match(diagnostics(coreReadsFilesystem),/forbidden library dependency core -> std/);
 });
+
+test('Node JS server cannot forge Java or native FFI authority from the server upper bound',()=>{
+  const target='server',backend='javascript';
+  for(const forbidden of ['interop.java','interop.native']){
+    const g={
+      ...closure(target,backend,'hosted'),
+      grants:[forbidden],
+      nodes:[
+        node('app','app',target,['std/bridge'],[forbidden]),
+        node('std/bridge','std',target,['core/minmax'],[forbidden]),
+        node('core/minmax','core',target)
+      ]
+    };
+    assert.match(diagnostics(g),
+      /backend javascript on server does not admit interop\.(?:java|native)/);
+  }
+  // Java/Graal on a server remains governed by its original explicit grants.
+  const g={
+    ...closure(target,'graal','hosted'),
+    grants:['interop.java'],
+    nodes:[
+      node('app','app',target,['std/java'],['interop.java']),
+      node('std/java','std',target,['core/minmax'],['interop.java']),
+      node('core/minmax','core',target)
+    ]
+  };
+  assert.equal(result(g).ok,true,diagnostics(g));
+});
