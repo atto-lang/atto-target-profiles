@@ -38,6 +38,8 @@ compiler graph is not caught by a JSON metadata check.
 
 `profiles/browser.json`, `profiles/edge-js.json`, and `profiles/server.json` describe **possible upper-bound capabilities**, not implicit grants. The `server` profile now admits the `javascript` backend to represent Node.js: this expands backend eligibility, **not** available ambient authority. In particular, the presence of `threads`, `heap`, `dynamic.code` or `net.client` in such a profile cannot make it a mandatory transitive dependency of `core`. Environment-specific optional `std` modules are legal only when the compiler proves their effect closure and the host explicitly grants the capability.
 
+Server `javascript` is currently an explicit Node-oriented backend admission only; `interop.java` and `interop.native` grants are **rejected for that backend**, even though they appear in the shared server environment's upper-bound capabilities for GraalVM/LLVM. A concrete compiler, native-addon ABI, and independently reviewed host adapter are required before reconsidering those privileges. Existing GraalVM/LLVM server grants are unaffected.
+
 The first experimental executable test is the pure integer `oreslang-source.java/stdlib/core.ores` module compiled to browser-safe JavaScript by `oreslang-source.js` PR #28. The legacy `stdlib/core.ores` file path and `std/core` spelling **do not grant it hosted effects**; they require a coordinated module-path migration, not duplicated competing source definitions. The JS experiment proves a narrow source subset, not complete compiler-side `libraryTier` inference or freestanding link proof.
 
 ## Outstanding hard gates
