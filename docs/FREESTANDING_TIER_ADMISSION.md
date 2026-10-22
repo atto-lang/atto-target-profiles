@@ -32,11 +32,11 @@ compiler graph is not caught by a JSON metadata check.
 | Target | `core` | optional `alloc` | optional `actor` provider | `std` provider |
 | --- | --- | --- | --- | --- |
 | Browser JS | pure ESM, no Node/DOM imports | explicit JS allocator/heap profile | explicit module Web Worker adapter, if available | browser-approved capabilities only (e.g. fetch/WebSocket/timers), no POSIX process/filesystem assumptions |
-| Node JS | same pure ESM core | explicit JS allocator/heap profile | explicit worker_threads adapter | Node-approved filesystem, process and network modules |
+| Node JS (`server` + `javascript`) | same pure ESM core, no implicit grants | explicit JS allocator/heap profile | explicit worker_threads adapter | Node-approved filesystem, process and network modules gated by requested capability grants |
 | Browser Wasm | pure wasm guest code/ABI with no mandatory host imports | explicit linear-memory allocator | explicitly admitted host workers/IPC | only reviewed WebAssembly host imports and WIT adapters |
 | Native LLVM | pure freestanding code, no libc | optional explicit allocator | platform scheduler/transport selected by target | Linux/Windows/embedded implementation selected and admitted |
 
-`profiles/browser.json` and `profiles/edge-js.json` describe **possible upper-bound capabilities**, not implicit grants. In particular, the presence of `threads`, `heap`, `dynamic.code` or `net.client` in such a profile cannot make it a mandatory transitive dependency of `core`. Environment-specific optional `std` modules are legal only when the compiler proves their effect closure and the host explicitly grants the capability.
+`profiles/browser.json`, `profiles/edge-js.json`, and `profiles/server.json` describe **possible upper-bound capabilities**, not implicit grants. The `server` profile now admits the `javascript` backend to represent Node.js: this expands backend eligibility, **not** available ambient authority. In particular, the presence of `threads`, `heap`, `dynamic.code` or `net.client` in such a profile cannot make it a mandatory transitive dependency of `core`. Environment-specific optional `std` modules are legal only when the compiler proves their effect closure and the host explicitly grants the capability.
 
 The first experimental executable test is the pure integer `oreslang-source.java/stdlib/core.ores` module compiled to browser-safe JavaScript by `oreslang-source.js` PR #28. The legacy `stdlib/core.ores` file path and `std/core` spelling **do not grant it hosted effects**; they require a coordinated module-path migration, not duplicated competing source definitions. The JS experiment proves a narrow source subset, not complete compiler-side `libraryTier` inference or freestanding link proof.
 
