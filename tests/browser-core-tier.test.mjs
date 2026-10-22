@@ -20,7 +20,7 @@ const closure=(target,backend,libraryProfile='freestanding-core')=>({
 const result=g=>validateClosure(g,profiles,g.libraryProfile);
 const diagnostics=g=>result(g).errors.join('\n');
 
-test('pure core is admitted with zero OS/provider privileges on browser JS, Node-like JS and Wasm',()=>{
+test('pure core is admitted with zero OS/provider privileges on browser JS, edge JS, Wasm and native',()=>{
   for(const [target,backend] of [
     ['browser','javascript'],['edge-js','javascript'],
     ['browser','wasm'],['edge-js','wasm'],
