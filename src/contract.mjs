@@ -144,6 +144,14 @@ export function validateClosure(input,profiles,requiredLibraryProfile=null) {
   if (backend!==undefined && (!BACKENDS.includes(backend)||!profile?.backends.includes(backend))) errors.push("backend "+backend+" is not declared for "+target);
   if (!unique(grants)||!subset(grants,CAPABILITIES)) errors.push("invalid or duplicate grants");
   if (profile && unique(grants) && !subset(grants,profile.capabilities)) errors.push("capability grant unavailable in "+target);
+  // A server environment's capability upper bounds are shared by LLVM,
+  // GraalVM and Node. Backend admission must not grant Node a Java FFI or
+  // native addon ABI that no compiler/host adapter has proved. These require
+  // a separately versioned provider and a later explicit re-admission.
+  if (target==="server" && backend==="javascript" && unique(grants))
+    for (const cap of grants)
+      if(cap==="interop.java"||cap==="interop.native")
+        errors.push("backend javascript on server does not admit "+cap);
   // Check for proxies before accessing array.length: revoked proxies
   // can throw even from seemingly innocent shape/size probes.
   if(nodeTypes.isProxy(nodes)||!Array.isArray(nodes))
