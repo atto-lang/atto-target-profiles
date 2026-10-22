@@ -3,7 +3,8 @@
   "name": "server",
   "backends": [
     "llvm",
-    "graal"
+    "graal",
+    "javascript"
   ],
   "capabilities": [
     "clock",
@@ -19,5 +20,5 @@
     "heap",
     "gc"
   ],
-  "notes": "Potential host upper bounds only; never grants; host-conditional features require explicit verification"
+  "notes": "Potential host upper bounds only, including Node.js JavaScript backend; never grants. Node host API/worker adapters require explicit capability admission"
 }
