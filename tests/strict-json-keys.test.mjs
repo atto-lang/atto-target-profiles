@@ -92,3 +92,14 @@ test('actual target-profile CLI denies a duplicate key with no valid output', as
     await rm(folder, {recursive:true, force:true});
   }
 });
+
+test('duplicate-key preflight has an absolute bound independent of caller depth overrides',()=>{
+  rejectDuplicateJsonKeys('{"a":[1,2]}',1);
+  assert.throws(()=>rejectDuplicateJsonKeys('{"a":{"b":1}}',1),/nesting limit/);
+  for(const untrustedDepth of [0,-1,129,Number.MAX_SAFE_INTEGER,Infinity,1.5])
+    assert.throws(()=>rejectDuplicateJsonKeys('{}',untrustedDepth),
+      /invalid JSON key admission input/);
+  assert.throws(()=>rejectDuplicateJsonKeys(' '.repeat(16*1024*1024+1)),
+    /exceeds 16 MiB/);
+  rejectDuplicateJsonKeys(' '.repeat(64*1024)+'{"safe":true}');
+});
