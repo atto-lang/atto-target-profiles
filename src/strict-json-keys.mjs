@@ -10,8 +10,11 @@ export function rejectDuplicateJsonKeys(source, maxDepth = MAX_JSON_DEPTH) {
   if (typeof source !== 'string' || !Number.isSafeInteger(maxDepth) ||
       maxDepth < 1 || maxDepth > MAX_JSON_DEPTH)
     throw new Error('invalid JSON key admission input');
-  // A direct caller must not bypass the CLI's bounded-file preflight.
-  if (source.length > MAX_JSON_UNITS)
+  // The file boundary is expressed in UTF-8 bytes, not JavaScript UTF-16
+  // code units. Two-byte/astral input must not bypass the 16 MiB limit.
+  // Check units first to avoid UTF-8 allocation on clearly oversized text.
+  if (source.length > MAX_JSON_UNITS ||
+      Buffer.byteLength(source, 'utf8') > MAX_JSON_UNITS)
     throw new Error('JSON duplicate-key preflight exceeds 16 MiB');
   if (source.charCodeAt(0) === 0xfeff)
     throw new Error('JSON BOM is not admitted');
