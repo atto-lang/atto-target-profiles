@@ -2,9 +2,17 @@
 // This preflight is not a substitute for JSON.parse's full syntax/type checks.
 const whitespace = ch => ch === ' ' || ch === '\n' || ch === '\r' || ch === '\t';
 
-export function rejectDuplicateJsonKeys(source, maxDepth = 128) {
-  if (typeof source !== 'string' || !Number.isInteger(maxDepth) || maxDepth < 1)
+const MAX_JSON_DEPTH = 128;
+const MAX_JSON_UNITS = 16 * 1024 * 1024; // Matches the CLI's max graph bytes.
+
+export function rejectDuplicateJsonKeys(source, maxDepth = MAX_JSON_DEPTH) {
+  // Callers may choose a stricter depth, not override the trusted ceiling.
+  if (typeof source !== 'string' || !Number.isSafeInteger(maxDepth) ||
+      maxDepth < 1 || maxDepth > MAX_JSON_DEPTH)
     throw new Error('invalid JSON key admission input');
+  // A direct caller must not bypass the CLI's bounded-file preflight.
+  if (source.length > MAX_JSON_UNITS)
+    throw new Error('JSON duplicate-key preflight exceeds 16 MiB');
   if (source.charCodeAt(0) === 0xfeff)
     throw new Error('JSON BOM is not admitted');
   let i = 0;
