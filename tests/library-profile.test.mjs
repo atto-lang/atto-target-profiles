@@ -87,9 +87,9 @@ test("core profile forbids ambient host capabilities",()=>{
 });
 
 test("ores.core remains host-effect-free inside std builds",()=>{
-  const graph={...base,libraryProfile:"std",grants:["fs.read"],nodes:[
-    node("app","app",["ores.core/math"],["fs.read"]),
-    node("ores.core/math","core",[],["fs.read"])
+  const graph={...base,libraryProfile:"std",grants:["clock"],nodes:[
+    node("app","app",["ores.core/math"],["clock"]),
+    node("ores.core/math","core",[],["clock"])
   ]};
   assert.match(errors(graph),/ores.core cannot require ambient host capabilities/);
 });
