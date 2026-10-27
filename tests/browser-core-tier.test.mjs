@@ -75,8 +75,10 @@ test('core profile cannot gain ores.std by listing it as a dependency',()=>{
 test('Node server JavaScript can run core without granting Node authority',()=>{
   const base=closure('server','javascript');
   assert.equal(result(base).ok,true,diagnostics(base));
-  for(const capability of ['fs.read','fs.write','net.client','threads','interop.native'])
+  for(const capability of ['fs.read','fs.write','net.client','threads'])
     assert.match(diagnostics({...base,grants:[capability]}),/unused build grants/);
+  assert.match(diagnostics({...base,grants:['interop.native']}),
+    /backend javascript on server does not admit interop\.native/);
 
   const std={
     ...closure('server','javascript','std'),
