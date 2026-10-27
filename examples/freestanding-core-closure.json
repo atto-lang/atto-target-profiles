@@ -4,7 +4,7 @@
   "target": "embedded",
   "backend": "llvm",
   "grants": [],
-  "libraryProfile": "freestanding-core",
+  "libraryProfile": "core",
   "providers": [],
   "nodes": [
     {
@@ -15,12 +15,12 @@
       ],
       "requires": [],
       "imports": [
-        "core/numeric"
+        "ores.core/numeric"
       ],
       "providerRequires": []
     },
     {
-      "id": "core/numeric",
+      "id": "ores.core/numeric",
       "layer": "core",
       "targets": [
         "embedded"

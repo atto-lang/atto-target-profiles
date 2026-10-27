@@ -93,91 +93,34 @@ authenticate a mutable checkout, replace source-review provenance, or
 prevent a compromised parent directory from being swapped externally.
 
 Both profiles require pinned compiler/target evidence and runtime enforcement. An upper-bound registry PASS is never an executed program, eBPF verifier result, deadline proof or hardware/physical signoff. See LLVM source PR #544 (BPF) and #660 (CGL), and Java source PR #1442 (CGL). Do not merge this change until downstream profile consumers and schema version-1 compatibility are reviewed; the vocabulary is expanded without changing the schema number.
-## Opt-in freestanding library admission
+## Oreslang library boundary: ores.core and ores.std
 
-A resolved graph may optionally declare `libraryProfile`, `providers`, and a
-`layer` on **every** source unit. Profiles are `freestanding-core`,
-`freestanding-alloc`, `freestanding-actor`, `freestanding-otp`, and
-`hosted`. These are library dependency contracts, **not** claims about
-supported executable backend targets.
+The resolved-closure contract models exactly two public library layers:
 
-- `core` depends on `core` only, and never requires host capabilities.
-- `alloc` can depend on `core/alloc` and requires `allocator.explicit`
-  if present in the closure.
-- `actor` can depend on `core/alloc/actor` and requires an explicit
-  executor, bounded mailbox, and trusted CONTROL provider (even without alloc).
-- `otp` can depend on `core/alloc/actor/otp` but not `std`; the
-  six OTP behaviours are a separate implementation milestone.
-- `std` is admitted only in `hosted`; even there, `core`
-  cannot depend on higher layers.
-  A hosted `std` unit may explicitly require `allocator.explicit` or
-  `clock.monotonic` without importing actor/alloc modules. This never grants
-  `control.trusted`, `executor.explicit`, or `mailbox.bounded` by itself,
-  and the importer must declare the same required provider.
-- Compiler-owned `std` must never import application modules (`std -> app` is
-  forbidden), including on hosted platforms.
-- Every `otp` unit must have a genuine transitive import path to an `actor`
-  unit; an unrelated actor elsewhere in the graph is insufficient.
-- Runtime providers are least-authority: a `freestanding-core` closure accepts
-  none; `alloc` requires explicit allocation, and actor/OTP providers may
-  include an optional allocator or monotonic clock where needed. Extra
-  unrelated provider grants are rejected.
-- Every unit of an opted-in closure must declare `providerRequires`. The
-  validator requires per-unit demands to be granted, requires every importer to
-  propagate those demands, and rejects undeclared, unused or overbroad grants.
-  An `alloc` unit must require `allocator.explicit`; an `actor` unit must
-  require explicit executor, bounded mailbox, and trusted CONTROL providers.
-  Optional actor clocks/arenas are admitted **only when a unit requires them**.
-- `providerRequires` remains **untrusted metadata** until the compiler infers
-  it from authenticated source, intrinsics, and generated code. Neither the
-  validator nor a user-supplied manifest confers security authority.
-- Every freestanding resolved node has an empty *ambient host capability*
-  `requires` set. Explicit provider declarations are separately checked.
-  Source calls to target-specific HAL/device interfaces need later
-  compiler-level effect typing and may not be mislabeled `core`.
+- `ores.core`: freestanding/no-OS source. Core units may import only core
+  units and may not require ambient host capabilities.
+- `ores.std`: hosted/platform source. Std units may import core or std, but
+  never application units.
 
-For example:
+`app` is only a resolved-graph classification for application source.
+Allocation, actors, OTP/supervision and clocks are no longer separate library
+layers. They are implemented below `ores.core` when freestanding, or below
+`ores.std` when they require hosted services. Explicit implementation
+requirements remain represented by `providerRequires` and `providers`.
 
-~~~sh
-node bin/oreslang-target.mjs check-closure \
-  examples/freestanding-core-closure.json \
-  --target=embedded --backend=llvm --grants=
-~~~
+The only library profile values are `core` and `std`. An external build
+selection can pass the required profile to `validateClosure` so
+source-controlled closure metadata cannot downgrade or remove it.
 
-The `app` layer identifies application source, not a new privileged library.
-**Trusted build selection:** Use
-`validateClosure(graph, profiles, requiredLibraryProfile)` when an embedding
-compiler/build has explicitly selected `freestanding-core`,
-`freestanding-alloc`, `freestanding-actor`, `freestanding-otp`, or
-`hosted` outside the resolved-graph file. The third argument is a *trusted
-build setting*, not read from untrusted project source; if the graph omits
-`libraryProfile` or tries to change it, validation fails closed. The existing
-CLI still needs to wire its selected profile into this API, and Java/LLVM must
-supply authenticated inferred layers/effects before it becomes an enforcement
-boundary. Without that third argument, legacy behavior remains by design.
+A `core` profile rejects every `std` unit and every ambient host capability.
+Explicit providers are allowed only when compiler-inferred, transitively
+propagated, and granted by the build. This permits, for example, a caller-owned
+allocator or bounded bare-metal actor executor without inventing an `alloc`
+or `actor` library tier.
 
-Legacy v1 closures **without** `libraryProfile` retain the existing behavior;
-supplying `providers` or node `layer` without the opt-in is rejected.
-The compiler must infer `layer` from trusted canonical import resolution;
-this JSON validator cannot independently prove that a claimed `core` unit
-contains only core source, nor that LLVM/native is actually freestanding.
-Never trust a manifest authored by untrusted application code as proof of
-library origin or effects.
+Existing target profiles remain capability upper bounds rather than grants.
+Metadata admission is not executable proof: native bare-metal qualification
+still requires exact compiler provenance, freestanding linking, forbidden-symbol
+audits, and target execution.
 
-This step can report only **contract admission**. It does not modify
-the Java/GraalVM `std/core` loader, implement a no-main entry point, provide a
-panic hook, link without libc, or demonstrate guest execution on Cortex-M.
-Native linker/undefined-symbol checks and backend conformance tests are
-required before advertising `no_std` support.
-
-Related upstream architecture:
-- [Java core/alloc/actor/std proposal](https://github.com/ores-truffle-oreslang/oreslang-source.java/blob/main/docs/CORE_ALLOC_STD_BOUNDARY.md)
-- [Shared freestanding/OTP contract PR #66](https://github.com/ores-truffle-oreslang/oreslang-common-source/pull/66)
-
-## Admission proposal consolidation
-
-The provider requirements from closed PR #17 are consolidated into this API.
-Platform `target` and `backend` retain their existing meaning; freestanding
-selection uses `libraryProfile`, with per-unit `providerRequires` propagated
-through imports. Compiler-inferred provenance and effects remain a separate
-integration gate; self-declared metadata does not establish them.
+See `docs/FREESTANDING_TIER_ADMISSION.md` for the enforcement matrix.

@@ -114,11 +114,11 @@ export function validateClosure(input,profiles,requiredLibraryProfile=null) {
   if(typeof target!=="string")errors.push("invalid resolved graph target");
   if(typeof backend!=="string")errors.push("missing or unknown backend");
   if(errors.length)return {ok:false,errors};
-  // A libraryProfile is an explicit opt-in to the freestanding layer gate.
+  // A libraryProfile opts into the compiler-resolved ores.core / ores.std boundary.
   // Its provider set must be supplied as own, dense, unique data.
   const hasLibraryProfile=Object.hasOwn(input,"libraryProfile");
   // Never let caller-supplied graph JSON remove or change an externally
-  // selected freestanding/hosted profile. Otherwise a legacy v1 graph could
+  // selected core/std profile. Otherwise a legacy v1 graph could
   // bypass the opt-in policy by omitting the libraryProfile property.
   if(requiredLibraryProfile!==null&&
      (!hasLibraryProfile||input.libraryProfile!==requiredLibraryProfile))
