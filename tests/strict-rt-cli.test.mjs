@@ -14,7 +14,7 @@ test('stage-0 CLI explicitly reports NOT CERTIFIED on shaped manifest',()=>{
   assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/STRUCTURAL_ONLY/);
   assert.match(result.stdout,/NOT CERTIFIED/);
-  assert.doesNotMatch(result.stdout,/\bCERTIFIED\b(?!.*NOT CERTIFIED)/);
+  assert.doesNotMatch(result.stdout,/^CERTIFIED\b/m);
 });
 test('stage-0 CLI rejects unexpected flags and missing fixture',()=>{
   assert.notEqual(run(fixture,'--backend=llvm').status,0);
