@@ -51,3 +51,23 @@ test("hostile objects, missing hashes, inherited fields and extensions denied",(
   enumerable:true,get(){called++;return clean().budget}});
  assert.equal(assess(x).ok,false);assert.equal(called,0);
 });
+
+test("hash admission cannot coerce symbols or objects into authority",()=>{
+  const badHashes=[Symbol("sha"),{toString(){throw Error("coercion invoked")}},
+    {toString(){return "a".repeat(40)}},null,42];
+  for (const value of badHashes) {
+    const x=clean();x.identity.sourceTreeSha1=value;
+    assert.equal(assess(x).classification,"DENIED");
+  }
+});
+test("untrusted proxy reflection traps are denied without escaping",()=>{
+  const variants=[
+    new Proxy(clean(),{getPrototypeOf(){throw Error("trap")}}),
+    new Proxy(clean(),{get(){throw Error("trap")}}),
+    {...clean(),identity:new Proxy(clean().identity,{
+      getOwnPropertyDescriptor(){throw Error("trap")}
+    })},
+  ];
+  for (const value of variants)
+    assert.equal(assess(value).classification,"DENIED");
+});

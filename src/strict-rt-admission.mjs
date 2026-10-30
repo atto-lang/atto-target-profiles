@@ -1,6 +1,8 @@
 // Candidate-only admission for a named hard-RT target. A passing structural
 // check is never a WCET certificate or a tested physical deadline.
 const SHA1=/^[0-9a-f]{40}$/;
+const validSha1 = value => typeof value === "string" && SHA1.test(value);
+const validSha256 = value => typeof value === "string" && SHA256.test(value);
 const SHA256=/^(?!0{64}$)[0-9a-f]{64}$/;
 const KEYS=["schemaVersion","profile","identity","budget","closure"];
 const IDS=["sourceTreeSha1","compilerSha256","artifactSha256","board","rtos","configSha256"];
@@ -11,20 +13,24 @@ const CLOSURE=["guestFullyCompiled","closedFfiGraph","noTracingGc","noPostBootAl
   "qualificationEvidenceReviewed"];
 
 function record(value, keys) {
-  if (value === null || typeof value!=="object" || Array.isArray(value)
-      || Object.getPrototypeOf(value)!==Object.prototype) return false;
-  const names=Object.keys(value);
-  return names.length===keys.length && keys.every(key=>{
-    const d=Object.getOwnPropertyDescriptor(value,key);
-    return d && Object.hasOwn(d,"value");
-  }) && names.every(key=>keys.includes(key));
+  try {
+    if (value === null || typeof value!=="object" || Array.isArray(value)
+        || Object.getPrototypeOf(value)!==Object.prototype) return false;
+    const names=Object.keys(value);
+    return names.length===keys.length && keys.every(key=>{
+      const d=Object.getOwnPropertyDescriptor(value,key);
+      return d && Object.hasOwn(d,"value");
+    }) && names.every(key=>keys.includes(key));
+  } catch {
+    return false; // A throwing reflection/proxy trap is not RT evidence.
+  }
 }
 const nonempty = str => typeof str==="string" && str.length>=1 && str.length<=128
   && !/[\x00-\x1f\x7f]/.test(str);
 const nonnegative = n => Number.isSafeInteger(n) && n>=0;
 const positive = n => Number.isSafeInteger(n) && n>0;
 
-export function assessStrictRealtimeTarget(data) {
+function assessStrictRealtimeTargetUnchecked(data) {
   const errors=[];
   if (!record(data,KEYS)) return {ok:false,classification:"DENIED",errors:["invalid manifest fields"]};
   if (data.schemaVersion!==1) errors.push("unsupported schema version");
@@ -33,8 +39,8 @@ export function assessStrictRealtimeTarget(data) {
   if (!record(data.identity,IDS)) errors.push("invalid target identity");
   else {
     const i=data.identity;
-    if (!SHA1.test(i.sourceTreeSha1) || !SHA256.test(i.compilerSha256)
-        || !SHA256.test(i.artifactSha256) || !SHA256.test(i.configSha256))
+    if (!validSha1(i.sourceTreeSha1) || !validSha256(i.compilerSha256)
+        || !validSha256(i.artifactSha256) || !validSha256(i.configSha256))
       errors.push("immutable tree, compiler, image and RTOS configuration hashes required");
     if (!nonempty(i.board)||!nonempty(i.rtos)) errors.push("named board and RTOS required");
   }
@@ -62,4 +68,14 @@ export function assessStrictRealtimeTarget(data) {
   return {ok:errors.length===0,
     classification:errors.length===0?"CANDIDATE_REVIEW_REQUIRED":"DENIED",
     errors};
+}
+
+/** A hostile caller's Proxy or field coercion must never escape admission. */
+export function assessStrictRealtimeTarget(data) {
+  try {
+    return assessStrictRealtimeTargetUnchecked(data);
+  } catch {
+    return {ok:false,classification:"DENIED",
+      errors:["malformed manifest or untrusted reflection trap"]};
+  }
 }
