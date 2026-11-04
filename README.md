@@ -13,6 +13,17 @@ node bin/oreslang-target.mjs list
 node bin/oreslang-target.mjs check-closure examples/portable-closure.json --target=browser --backend=wasm --grants=clock,net.client
 ~~~
 
+For canonical AttoLang logical unit names, use the source-free `.atto`
+closure fixture:
+
+~~~sh
+node bin/oreslang-target.mjs check-closure examples/atolang-portable-closure.json --target=browser --backend=wasm --grants=clock,net.client
+~~~
+
+This verifies declared target and grant compatibility only. Logical `.atto`
+IDs are not proof of a compiler-resolved source graph or compiled guest.
+The corresponding CLI negatives reject missing grants and a wrong backend.
+
 Thirteen JSON profiles: server, desktop, browser, edge-js, edge-wasi, ios, android, embedded, fpga, asic, litegraph, ebpf, carrier-linux. Hardware profiles use an explicit `hdl` backend and zero host capabilities; they are metadata admission only, not evidence of the Oreslang hardware compiler.
 
 The declared backend and capabilities are *possible* host features, not proof of backend readiness or permission grants. Browser threads and dynamic code, embedded GPIO and most host APIs require additional host-specific checks.
