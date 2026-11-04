@@ -3,6 +3,7 @@ import {open} from "node:fs/promises";
 import {constants} from "node:fs";
 import {TextDecoder} from "node:util";
 import {validateRegistry,validateClosure} from "../src/contract.mjs";
+import {validateRtCandidate} from "../src/strict-rt-candidate.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 import {rejectDuplicateJsonKeys} from "../src/strict-json-keys.mjs";
 
@@ -84,7 +85,11 @@ try{
   }
   result=validateClosure({...graph,target:args.target,backend:args.backend,
     grants:args.grants?args.grants.split(","):[]},profiles);
- }else throw Error("usage: list | validate-registry | check-closure <graph.json> --target=browser --backend=wasm --grants=clock,net.client");
+ }else if(command==="check-rt-candidate"){
+  if(!file||file.startsWith("--")||options.length)throw Error("check-rt-candidate requires one manifest JSON path and no flags");
+  result=validateRtCandidate(await readGraph(file));
+ }else throw Error("usage: list | validate-registry | check-closure <graph.json> --target=browser --backend=wasm --grants=clock,net.client | check-rt-candidate <manifest.json>");
  if(!result.ok){console.error(result.errors.join("\n"));process.exitCode=1}
+ else if(command==="check-rt-candidate")console.log("STRUCTURAL_ONLY (NOT CERTIFIED; no compiled guest, hardware timing, or source provenance proof)");
  else console.log("OK"+(result.visited?" ("+result.visited+" units checked)":""));
 }catch(e){console.error(e.message);process.exitCode=2}
