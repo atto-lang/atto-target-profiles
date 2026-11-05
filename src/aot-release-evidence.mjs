@@ -1,6 +1,6 @@
 // Local AOT artifact identity gate. This is NOT a code-signature verifier,
 // a native execution receipt, target ABI certification, or compiler provenance.
-import {openSync,readFileSync,closeSync,lstatSync,realpathSync,constants} from 'node:fs';
+import {openSync,readFileSync,closeSync,lstatSync,fstatSync,realpathSync,constants} from 'node:fs';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -37,9 +37,14 @@ export function inspectLocalAotArtifact(manifest,file){
  let fd;
  try{
   fd=openSync(file,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
+  const st=fstatSync(fd);
+  // Check the opened inode before allocating: the manifest cannot authorize
+  // reading an arbitrarily large replacement file or a special device.
+  if(!st.isFile()||st.size!==manifest.artifactBytes||st.size>MAX_BYTES)
+    fail('artifact byte size mismatch or special file');
   const bytes=readFileSync(fd);
-  if(bytes.byteLength!==manifest.artifactBytes||bytes.byteLength>MAX_BYTES)
-    fail('artifact byte size mismatch');
+  if(bytes.byteLength!==manifest.artifactBytes)
+    fail('artifact changed during read');
   const hash=createHash('sha256').update(bytes).digest('hex');
   if(hash!==manifest.artifactSha256)fail('artifact content fingerprint mismatch');
   const first=bytes.subarray(0,4).toString('hex');
