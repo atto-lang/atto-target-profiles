@@ -12,20 +12,29 @@ const CLOSURE=["guestFullyCompiled","closedFfiGraph","noTracingGc","noPostBootAl
   "noInterpreter","noUnboundedLoop","cleanupBounded","unknownEffects",
   "qualificationEvidenceReviewed"];
 
-function record(value, keys) {
+function snapshotRecord(value, keys) {
   try {
     if (value === null || typeof value!=="object" || Array.isArray(value)
-        || Object.getPrototypeOf(value)!==Object.prototype) return false;
+        || Object.getPrototypeOf(value)!==Object.prototype) return null;
     // Authority manifests cannot conceal symbol or non-enumerable fields.
     // Check descriptors, not caller-controlled property getters.
     const names=Reflect.ownKeys(value);
-    return names.length===keys.length && names.every(key=>{
-      if(typeof key!=="string" || !keys.includes(key))return false;
-      const d=Object.getOwnPropertyDescriptor(value,key);
-      return d && d.enumerable===true && Object.hasOwn(d,"value");
-    });
+    if (names.length!==keys.length) return null;
+    const snapshot=Object.create(null);
+    for (const key of names) {
+      if (typeof key!=="string" || !keys.includes(key)) return null;
+      const descriptor=Object.getOwnPropertyDescriptor(value,key);
+      if (!descriptor || descriptor.enumerable!==true
+          || !Object.hasOwn(descriptor,"value")) return null;
+      // Capture from the verified descriptor; a later direct get could invoke
+      // a Proxy trap or race with a caller mutation after validation.
+      Object.defineProperty(snapshot,key,{
+        value:descriptor.value,enumerable:true,writable:false,configurable:false
+      });
+    }
+    return snapshot;
   } catch {
-    return false; // A throwing reflection/proxy trap is not RT evidence.
+    return null; // A throwing reflection/proxy trap is not RT evidence.
   }
 }
 const nonempty = str => typeof str==="string" && str.length>=1 && str.length<=128
@@ -35,21 +44,22 @@ const positive = n => Number.isSafeInteger(n) && n>0;
 
 function assessStrictRealtimeTargetUnchecked(data) {
   const errors=[];
-  if (!record(data,KEYS)) return {ok:false,classification:"DENIED",errors:["invalid manifest fields"]};
-  if (data.schemaVersion!==1) errors.push("unsupported schema version");
-  if (!["llvm-aot-rt-strict","java-rtsj-rt-strict"].includes(data.profile))
+  const manifest=snapshotRecord(data,KEYS);
+  if (!manifest) return {ok:false,classification:"DENIED",errors:["invalid manifest fields"]};
+  if (manifest.schemaVersion!==1) errors.push("unsupported schema version");
+  if (!["llvm-aot-rt-strict","java-rtsj-rt-strict"].includes(manifest.profile))
     errors.push("hard real-time profile not implemented");
-  if (!record(data.identity,IDS)) errors.push("invalid target identity");
+  const i=snapshotRecord(manifest.identity,IDS);
+  if (!i) errors.push("invalid target identity");
   else {
-    const i=data.identity;
     if (!validSha1(i.sourceTreeSha1) || !validSha256(i.compilerSha256)
         || !validSha256(i.artifactSha256) || !validSha256(i.configSha256))
       errors.push("immutable tree, compiler, image and RTOS configuration hashes required");
     if (!nonempty(i.board)||!nonempty(i.rtos)) errors.push("named board and RTOS required");
   }
-  if (!record(data.budget,BUDGET)) errors.push("invalid resource budget");
+  const b=snapshotRecord(manifest.budget,BUDGET);
+  if (!b) errors.push("invalid resource budget");
   else {
-    const b=data.budget;
     if (!positive(b.periodUs)||!positive(b.deadlineUs)||!positive(b.wcetUs)
       || !nonnegative(b.releaseJitterUs)||!nonnegative(b.blockingUs)
       || !positive(b.stackBytes)||!positive(b.arenaBytes)||!positive(b.mailboxSlots)
@@ -59,9 +69,9 @@ function assessStrictRealtimeTargetUnchecked(data) {
       BigInt(b.wcetUs)+BigInt(b.releaseJitterUs)+BigInt(b.blockingUs)>BigInt(b.deadlineUs))
       errors.push("WCET + release jitter + blocking exceeds admitted deadline or period");
   }
-  if (!record(data.closure,CLOSURE)) errors.push("invalid compiler closure");
+  const c=snapshotRecord(manifest.closure,CLOSURE);
+  if (!c) errors.push("invalid compiler closure");
   else {
-    const c=data.closure;
     if (CLOSURE.some(key=>typeof c[key]!=="boolean")
       || !c.guestFullyCompiled || !c.closedFfiGraph || !c.noTracingGc
       || !c.noPostBootAlloc || !c.noInterpreter || !c.noUnboundedLoop
