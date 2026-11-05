@@ -135,3 +135,18 @@ still requires exact compiler provenance, freestanding linking, forbidden-symbol
 audits, and target execution.
 
 See `docs/FREESTANDING_TIER_ADMISSION.md` for the enforcement matrix.
+
+## AOT release envelope candidate (host-only)
+
+`src/aot-release-envelope.mjs` checks that an independently gathered release
+candidate declares an exact compiler commit/tree/binary, platform-native
+format/triple, artifact digest, bound guest output, and three distinct successful
+compile/link/guest-execution steps with a runner and run attempt. Run the
+source-only negative regressions with `npm test`.
+
+Passing this schema only returns `STRUCTURAL_CANDIDATE_ONLY`. It does **not**
+authenticate caller-supplied workflow IDs, execute a native binary, prove that
+a GitHub job was stepful, establish provenance, or certify Linux/Windows/macOS.
+A trusted release publisher must independently read live job/step and binary
+identities, compare the complete immutable artifact closure, confirm reviewer
+and protected-branch policy, then execute the actual target application.
