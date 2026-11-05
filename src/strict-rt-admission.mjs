@@ -16,11 +16,14 @@ function record(value, keys) {
   try {
     if (value === null || typeof value!=="object" || Array.isArray(value)
         || Object.getPrototypeOf(value)!==Object.prototype) return false;
-    const names=Object.keys(value);
-    return names.length===keys.length && keys.every(key=>{
+    // Authority manifests cannot conceal symbol or non-enumerable fields.
+    // Check descriptors, not caller-controlled property getters.
+    const names=Reflect.ownKeys(value);
+    return names.length===keys.length && names.every(key=>{
+      if(typeof key!=="string" || !keys.includes(key))return false;
       const d=Object.getOwnPropertyDescriptor(value,key);
-      return d && Object.hasOwn(d,"value");
-    }) && names.every(key=>keys.includes(key));
+      return d && d.enumerable===true && Object.hasOwn(d,"value");
+    });
   } catch {
     return false; // A throwing reflection/proxy trap is not RT evidence.
   }
