@@ -16,10 +16,22 @@ function reject(reason) { throw new Error('NATIVE_HEADER_UNVERIFIED: ' + reason)
 export function inspectNativeMachineHeader(bytes, target) {
   if (typeof target !== 'string' || !targets.has(target))
     reject('unsupported OS/architecture target');
+  // Subclasses can override byteLength/iteration with hostile accessors.
+  // Require a native Uint8Array/Buffer shape, use the intrinsic byteLength,
+  // and copy via the internal typed-array path instead of Symbol.iterator.
   if (!(bytes instanceof Uint8Array) || nodeTypes.isProxy(bytes) ||
-      bytes.byteLength > 64 * 1024 * 1024)
+      ![Uint8Array.prototype, Buffer.prototype].includes(Object.getPrototypeOf(bytes)))
     reject('expected bounded non-proxy artifact bytes');
-  const b = Buffer.from(bytes); // snapshot before reading any untrusted data
+  let size;
+  try {
+    size = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(Uint8Array.prototype), 'byteLength').get.call(bytes);
+  } catch {
+    reject('invalid or detached artifact view');
+  }
+  if (size > 64 * 1024 * 1024)
+    reject('artifact bytes exceed bounded limit');
+  const b = Buffer.copyBytesFrom(bytes); // owned snapshot without guest iterators
   const expectedCpu = target.endsWith('x86_64') ? 'x86_64' : 'aarch64';
 
   if (target.startsWith('linux-')) {
