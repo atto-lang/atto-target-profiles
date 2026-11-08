@@ -7,6 +7,10 @@ import { createHash } from 'node:crypto';
 const sha40 = /^[0-9a-f]{40}$/;
 const sha64 = /^[0-9a-f]{64}$/;
 const id = /^[A-Za-z_][A-Za-z0-9_.:<>,-]{0,159}$/;
+// Never let RegExp.test coerce attacker-controlled objects via toString/valueOf.
+const validSha40 = v => typeof v === 'string' && sha40.test(v);
+const validSha64 = v => typeof v === 'string' && sha64.test(v);
+const validId = v => typeof v === 'string' && id.test(v);
 const pathPattern = /^(?!\/)(?!.*(?:^|\/)\.\.?\/)[A-Za-z0-9_.\/-]+\.atto$/;
 const backendSet = new Set(['java-graal', 'llvm', 'net', 'wasm', 'forge']);
 const triples = new Map([
@@ -69,9 +73,9 @@ export function admitClosedWorldManifest(m) {
       m.dynamicLoading !== false || m.runtimeReflection !== false ||
       m.runtimeJit !== false) fail('OPEN_WORLD');
   own(m.source, ['commit', 'tree']);
-  if (!sha40.test(m.source.commit) || !sha40.test(m.source.tree)) fail('SOURCE_SHA');
+  if (!validSha40(m.source.commit) || !validSha40(m.source.tree)) fail('SOURCE_SHA');
   own(m.compiler, ['name', 'sha256']);
-  if (!id.test(m.compiler.name) || !sha64.test(m.compiler.sha256)) fail('COMPILER');
+  if (!validId(m.compiler.name) || !validSha64(m.compiler.sha256)) fail('COMPILER');
   own(m.target, ['backend', 'triple', 'guestPointerBits']);
   if (!backendSet.has(m.target.backend) || !triples.has(m.target.triple) ||
       m.target.guestPointerBits !== 32) fail('TARGET');
@@ -95,7 +99,7 @@ export function admitClosedWorldManifest(m) {
   let priorPath = '';
   for (const src of m.sourceFiles) {
     own(src, ['path', 'sha256']);
-    if (typeof src.path !== 'string' || !pathPattern.test(src.path) || !sha64.test(src.sha256) ||
+    if (typeof src.path !== 'string' || !pathPattern.test(src.path) || !validSha64(src.sha256) ||
         src.path <= priorPath) fail('SOURCE_FILES');
     if (src.path.split('/').some(c => c === '.' || c === '..' || c === '')) fail('SOURCE_TRAVERSAL');
     priorPath = src.path;
@@ -105,7 +109,7 @@ export function admitClosedWorldManifest(m) {
   for (const imp of m.imports) {
     own(imp, ['capability', 'abiSha256']);
     if (typeof imp.capability !== 'string' || !id.test(imp.capability) ||
-        !sha64.test(imp.abiSha256) || imp.capability <= priorImport ||
+        !validSha64(imp.abiSha256) || imp.capability <= priorImport ||
         /(?:^|[.:])(?:dynamic|unknown|eval|reflect)(?:$|[.:])/i.test(imp.capability)) fail('IMPORTS');
     priorImport = imp.capability;
   }
@@ -123,7 +127,7 @@ export function inspectAotProofReceipt(r, m) {
   if (!equal(r.source, m.source) || !equal(r.compiler,m.compiler) ||
       !equal(r.target,m.target)) fail('STALE_BUILD');
   own(r.artifact, ['sha256','bytes','format']);
-  if (!sha64.test(r.artifact.sha256) || !Number.isSafeInteger(r.artifact.bytes) ||
+  if (!validSha64(r.artifact.sha256) || !Number.isSafeInteger(r.artifact.bytes) ||
       r.artifact.bytes <= 0 || r.artifact.bytes > 2_147_483_648 ||
       r.artifact.format !== triples.get(m.target.triple)) fail('ARTIFACT');
   own(r.runner, ['source','workflowRunId','runAttempt','jobId','runnerId','steps']);
