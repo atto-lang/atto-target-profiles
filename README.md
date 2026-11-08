@@ -135,3 +135,14 @@ still requires exact compiler provenance, freestanding linking, forbidden-symbol
 audits, and target execution.
 
 See `docs/FREESTANDING_TIER_ADMISSION.md` for the enforcement matrix.
+
+## Repository ownership and migration (2026-11-08)
+
+**Current home:** `ores-truffle-oreslang/oreslang-target-profiles` (legacy Oreslang); public language name **AttoLang**. Retain existing `.ores` files and `oreslang-*` dependencies/CLI compatibility; don't infer backend or device capabilities from branding.
+
+- **Owns:** target capability/ABI feature manifests and positive/negative target conformance rules.
+- **Excludes:** implementing a specific compiler's lowering or a cloud provider.
+- **Organizations:** [atto-lang](https://github.com/atto-lang) owns compiler/runtime target adapters, language portability, stdlib and conformance. [atto-co](https://github.com/atto-co) owns hosted control planes, deployment, tenancy, billing and managed infrastructure. A similarly named destination repo is not an executed transfer or equivalent runtime.
+- **Proposed initial migration:** approved *ownership transfer* of this repository into `atto-lang/oreslang-target-profiles` **without renaming**. Preserve the numeric GitHub ID and Git tree. No direct `atto-co` migration is authorized in the current wave; later commercial carve-outs require a separate review.
+
+**Per-repo safety gates:** claim in [coordination issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26), follow private [migration PR #25's runbook](https://github.com/ores-truffle-oreslang/.github/pull/25); record exact head SHA/tree, numeric repository ID, independent security + both admin approvals, target branch protection/rulesets and access, permissions for Actions/secrets/apps/deploy keys, PRs, releases, packages, Pages and dependencies; approve rollback. Never mirror private code without authorization. After a real GitHub transfer, recheck unchanged ID/tree/history, re-establish permissions, update consumer references and rerun exact-head executable tests. `steps=[]` or `null` is `NOT_EXECUTED`; host-only checks do not demonstrate language guest parity, zero-GC, AOT or safe production use.
