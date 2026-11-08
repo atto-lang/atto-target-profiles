@@ -71,3 +71,17 @@ test('unsupported target and forged object shapes cannot make a header claim',()
   const proxy=new Proxy(bytes,{});
   assert.throws(()=>inspect(proxy,'linux-x86_64'),/bytes/);
 });
+
+test('prototype and shadow accessor attacks never execute caller-controlled code',()=>{
+  let getterCalls=0;
+  class PoisonedArray extends Uint8Array {
+    get byteLength(){ getterCalls++; throw new Error('poisoned view'); }
+    *[Symbol.iterator](){ getterCalls++; throw new Error('poisoned iterator'); }
+  }
+  assert.throws(()=>inspect(new PoisonedArray(elf(62)), 'linux-x86_64'),/bytes/);
+  const shadowed=Uint8Array.from(elf(62));
+  Object.defineProperty(shadowed,'byteLength',{get(){getterCalls++;throw new Error('poisoned length')}});
+  Object.defineProperty(shadowed,Symbol.iterator,{get(){getterCalls++;throw new Error('poisoned iteration')}});
+  assert.equal(inspect(shadowed,'linux-x86_64').classification,'STRUCTURAL_MACHINE_HEADER_ONLY');
+  assert.equal(getterCalls,0);
+});
