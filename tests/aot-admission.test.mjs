@@ -159,3 +159,23 @@ test('supported backend identity and artifact format remain distinct',()=>{
     assert.equal(inspectAotProofReceipt(r,m).certified,false);
   }
 });
+
+test('SHA and identifier fields require primitive strings rather than coerced objects',()=>{
+  let coerced=0;
+  const spoof=s=>({toString(){coerced++;return s;}});
+  for(const mutate of [
+    m=>m.source.commit=spoof(a),
+    m=>m.source.tree=spoof(b),
+    m=>m.compiler.name=spoof('atto-llvmc'),
+    m=>m.compiler.sha256=spoof(c),
+    m=>m.sourceFiles[0].sha256=spoof(c),
+    m=>m.imports[0].abiSha256=spoof(c),
+  ]) {
+    const m=manifest();mutate(m);
+    denied(()=>admitClosedWorldManifest(m));
+  }
+  const m=manifest(),r=receipt(m);
+  r.artifact.sha256=spoof(r.artifact.sha256);
+  denied(()=>inspectAotProofReceipt(r,m));
+  assert.equal(coerced,0,'untrusted toString must never execute');
+});
