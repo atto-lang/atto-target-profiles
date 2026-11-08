@@ -31,9 +31,19 @@ function own(v, fields) {
     if (!d || !Object.hasOwn(d, 'value') || !d.enumerable) fail('ACCESSOR');
   }
 }
+function dense(arr, limit, label = 'LIST') {
+  if (!Array.isArray(arr) || Object.getPrototypeOf(arr) !== Array.prototype ||
+      arr.length > limit || Reflect.ownKeys(arr).length !== arr.length + 1)
+    fail(label);
+  for (let i = 0; i < arr.length; i++) {
+    const descriptor = Object.getOwnPropertyDescriptor(arr, String(i));
+    if (!descriptor || !Object.hasOwn(descriptor,'value') || !descriptor.enumerable)
+      fail(label);
+  }
+}
 function ordered(arr, predicate, limit = 2048) {
-  if (!Array.isArray(arr) || arr.length > limit ||
-      arr.some(v => !predicate(v))) fail('LIST');
+  dense(arr, limit);
+  if (arr.some(v => !predicate(v))) fail('LIST');
   for (let i = 1; i < arr.length; i++) if (arr[i - 1] >= arr[i]) fail('LIST_ORDER');
 }
 function equal(a,b) { return JSON.stringify(a) === JSON.stringify(b); }
@@ -69,13 +79,19 @@ export function admitClosedWorldManifest(m) {
   if (!m.modules.length) fail('MODULES_EMPTY');
   for (const key of ['types', 'exports', 'actorEntries', 'genericSpecializations'])
     ordered(m[key], v => typeof v === 'string' && id.test(v), 4096);
+  for (const generic of m.genericSpecializations) {
+    if (!generic.includes('<') || !generic.endsWith('>') ||
+        generic.includes('<>') ||
+        /(?:^|[<,])(?:any|unknown|dyn)(?:[>,]|$)/i.test(generic))
+      fail('UNRESOLVED_GENERIC');
+  }
   for (const entry of m.actorEntries)
     if (!m.exports.includes(entry)) fail('ACTOR_ROOT_NOT_RETAINED');
   const isModuleMember = s => m.modules.some(mod => s === mod || s.startsWith(mod + '.'));
   for (const key of ['types','exports','actorEntries','genericSpecializations'])
     if (m[key].some(s => !isModuleMember(s))) fail('UNDECLARED_MODULE');
-  if (!Array.isArray(m.sourceFiles) || !m.sourceFiles.length || m.sourceFiles.length > 4096)
-    fail('SOURCE_FILES');
+  dense(m.sourceFiles, 4096, 'SOURCE_FILES');
+  if (!m.sourceFiles.length) fail('SOURCE_FILES');
   let priorPath = '';
   for (const src of m.sourceFiles) {
     own(src, ['path', 'sha256']);
@@ -84,7 +100,7 @@ export function admitClosedWorldManifest(m) {
     if (src.path.split('/').some(c => c === '.' || c === '..' || c === '')) fail('SOURCE_TRAVERSAL');
     priorPath = src.path;
   }
-  if (!Array.isArray(m.imports) || m.imports.length > 256) fail('IMPORTS');
+  dense(m.imports, 256, 'IMPORTS');
   let priorImport = '';
   for (const imp of m.imports) {
     own(imp, ['capability', 'abiSha256']);
@@ -116,6 +132,7 @@ export function inspectAotProofReceipt(r, m) {
         .some(v => !Number.isSafeInteger(v) || v <= 0) ||
       !Array.isArray(r.runner.steps) || !r.runner.steps.length ||
       r.runner.steps.length > 256) fail('NOT_EXECUTED');
+  dense(r.runner.steps, 256, 'NOT_EXECUTED');
   const seenSteps = new Set();
   for (const step of r.runner.steps) {
     own(step, ['name', 'conclusion']);
