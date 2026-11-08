@@ -74,9 +74,6 @@ test('unbounded source/import/actor metadata cannot escape closed manifest',()=>
   ];
   for(const mutate of cases){
     const m=manifest();mutate(m);
-    // A specialization name 'unknown' is syntactically bounded and cannot
-    // be proven dynamic by a manifest alone; another typed gate must reject it.
-    if(mutate===cases[2]){assert.equal(admitClosedWorldManifest(m).certified,false);continue;}
     denied(()=>admitClosedWorldManifest(m));
   }
 });
@@ -90,6 +87,28 @@ test('prototype, accessor, symbol and nonenumerable field injection fail closed'
     m=>m.source=Object.create({commit:a,tree:b}),
     m=>m.imports[0].extra='x',
   ]) {const m=manifest();mutate(m);denied(()=>admitClosedWorldManifest(m));}
+});
+
+test('sparse arrays, array symbols, and hidden indexes cannot bypass closed-world admission',()=>{
+  const mutations=[
+    m=>delete m.genericSpecializations[0],
+    m=>m.modules[Symbol('hidden')]='secret',
+    m=>Object.defineProperty(m.actorEntries,'0',{get:()=> 'pkg.worker',enumerable:true}),
+    m=>m.exports.extra='unsafe',
+    m=>delete m.sourceFiles[0],
+    m=>delete m.imports[0],
+  ];
+  for(const mutate of mutations) {
+    const m=manifest();mutate(m);denied(()=>admitClosedWorldManifest(m));
+  }
+  for(const mutate of [
+    r=>delete r.runner.steps[0],
+    r=>r.runner.steps.extra='fake',
+    r=>Object.defineProperty(r.runner.steps,'0',{get:()=>({name:'fake',conclusion:'success'}),enumerable:true}),
+  ]){
+    const m=manifest(), r=receipt(m);mutate(r);
+    denied(()=>inspectAotProofReceipt(r,m));
+  }
 });
 
 test('zero steps, stale build and unverifiable success claims are rejected',()=>{
