@@ -1,21 +1,24 @@
 name: IndieBuild local verification
 on:
   push:
-    branches: [codex/indiebuild-local-proof]
-    paths: [.github/workflows/indiebuild-local.yml]
+    branches: [main, codex/indiebuild-local-proof]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 env:
-  EXPECTED_SHA: ${{ github.sha }}
+  EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 jobs:
   contracts:
+    name: IndieBuild / contracts
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [indiebuild-linux-arm64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          ref: ${{ env.EXPECTED_SHA }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
