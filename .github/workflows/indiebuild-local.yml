@@ -1,0 +1,26 @@
+name: IndieBuild local verification
+on:
+  push:
+    branches: [codex/indiebuild-local-proof]
+    paths: [.github/workflows/indiebuild-local.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  EXPECTED_SHA: ${{ github.sha }}
+jobs:
+  contracts:
+    runs-on: [indiebuild-linux-arm64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: npm run validate
+      - run: node bin/oreslang-target.mjs check-closure examples/portable-closure.json --target=browser --backend=wasm --grants=clock,net.client
+      # This prints STRUCTURAL_ONLY, NEVER an RT certification receipt.
+      - run: node bin/oreslang-target.mjs check-rt-candidate examples/strict-rt-candidate.json
