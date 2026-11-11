@@ -1,8 +1,5 @@
 name: IndieBuild local verification
 on:
-  push:
-    branches: [main, codex/indiebuild-local-proof]
-  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
