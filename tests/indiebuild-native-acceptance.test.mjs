@@ -42,13 +42,13 @@ test('artifact checksum survives upload/download directory layout and rejects co
   try {
     mkdirSync(proof);
     const expected='a'.repeat(40);
-    writeFileSync(join(proof,'commit.sha'),expected+'\\n');
+    writeFileSync(join(proof,'commit.sha'),expected+'\n');
     const checksum=execFileSync('sha256sum',['commit.sha'],{cwd:proof,encoding:'utf8'});
     writeFileSync(join(proof,'commit.sha256'),checksum);
-    assert.match(checksum,/^[a-f0-9]{64}  commit\\.sha\\n$/);
-    assert.match(execFileSync('sha256sum',['--check','commit.sha256'],{cwd:proof,encoding:'utf8'}),/commit\\.sha: OK/);
+    assert.match(checksum,/^[a-f0-9]{64}  commit\.sha\n$/);
+    assert.match(execFileSync('sha256sum',['--check','commit.sha256'],{cwd:proof,encoding:'utf8'}),/commit\.sha: OK/);
     assert.equal(readFileSync(join(proof,'commit.sha'),'utf8').trim(),expected);
-    writeFileSync(join(proof,'commit.sha'),'tampered\\n');
+    writeFileSync(join(proof,'commit.sha'),'tampered\n');
     assert.throws(()=>execFileSync('sha256sum',['--check','commit.sha256'],{cwd:proof,stdio:'pipe'}));
   } finally {
     rmSync(root,{recursive:true,force:true});
