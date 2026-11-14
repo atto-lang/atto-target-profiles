@@ -35,7 +35,7 @@ jobs:
           test "$EXPECTED_KIND" = native-gha
           mkdir -p proof
           printf '%s\n' "$GITHUB_SHA" > proof/commit.sha
-          sha256sum proof/commit.sha > proof/commit.sha256
+          (cd proof && sha256sum commit.sha > commit.sha256)
       - name: Upload receipt
         if: ${{ success() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
