@@ -25,3 +25,9 @@ This README records the intended role of this repository; it is not a claim of f
 - [AttoLang](https://github.com/atto-lang)
 - [Language specification](https://github.com/atto-lang/atto-spec)
 - [Cross-platform conformance](https://github.com/atto-lang/atto-platform-conformance)
+
+## Experimental capability profile validation (host-only)
+
+`reference/capability_profile.py` validates proposed `schema_version: 1` metadata for named backends/targets and a bounded feature map. Each feature must be `unsupported`, `unverified`, or `verified`; `verified` requires exact source SHA, evidence SHA-256, and a positive executed-case count. `unsupported`/`unverified` must not carry success metadata. Run `python3 -m unittest discover -s tests -v` for host validation tests.
+
+This is a draft schema, **not** a capability declaration or independent attestation. A syntactically valid digest is not proof of real guest execution. Trustworthy parity requires verifier-signed exact-head receipts, negative tests and target-local execution. No backend is marked supported by this repository change.
