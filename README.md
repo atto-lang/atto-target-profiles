@@ -25,3 +25,15 @@ This README records the intended role of this repository; it is not a claim of f
 - [AttoLang](https://github.com/atto-lang)
 - [Language specification](https://github.com/atto-lang/atto-spec)
 - [Cross-platform conformance](https://github.com/atto-lang/atto-platform-conformance)
+
+## Repository ownership and contribution routing
+
+**Belongs here:** Machine-readable target profiles, backend capability names, supported host/ABI combinations, memory constraints and explicit exclusions.
+
+**Belongs elsewhere:** Device drivers belong in atto-platform.*; compiler implementers enforce the profiles inside atto-source.*; language semantics remain in atto-spec.
+
+**Security and portability boundary:** Profiles are declarations, not proof: require conformance receipts for feature support and fail-closed capability admission on unsupported targets.
+
+AttoLang is the public name; preserve existing Oreslang/.ores compatibility and use canonical .atto for new portable library source. This README defines scope, not feature readiness.
+
+**Acceptance:** name the exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
