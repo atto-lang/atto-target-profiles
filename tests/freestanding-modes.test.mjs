@@ -47,5 +47,5 @@ test('reject tampered profile fields and fabricated guest evidence',()=>{
 test('deny ambiguous request metadata, unknown modes and duplicate imported layers',()=>{
   denied('E_TARGET_PROFILE',()=>admitDeclaredDependencies(fresh(),q('core',['core'])));
   denied('E_TARGET_PROFILE',()=>admitDeclaredDependencies(fresh(),q('freestanding-core',['core','core'])));
-  denied('E_TARGET_PROFILE',()=>admitDeclaredDependencies(fresh(),{...q('freestanding-core',['core']),extra:true}));
+  denied('E_PROFILE_SCHEMA',()=>admitDeclaredDependencies(fresh(),{...q('freestanding-core',['core']),extra:true}));
 });
