@@ -14,6 +14,12 @@ const BASE=[
  ['hosted-std',['core','alloc','std'],['host_adapter','allocator'],['unapproved_host_import'],'host-adapter','host-or-platform','host-or-explicit']
 ];
 const BACKENDS=['llvm','java','net','wasm','forge','rs','embedded'];
+const PERMITTED_SERVICES={
+  'freestanding-core':['pure','target.atomic','target.mmio'],
+  'freestanding-alloc':['pure','target.atomic','target.mmio','explicit_allocator'],
+  'hosted-std':['pure','allocator','host_adapter','os','libc','host_io','host_scheduler',
+    'os.fs','os.net','os.process','os.clock','os.stdio','target.atomic','target.mmio']
+};
 export function validateModes(m){
   assertObject(m,['schema','status','modes','targetBackends','proof'],'root');
   if(m.schema!=='atto.target.library-modes.v1'||m.status!=='PROPOSAL_NOT_EXECUTED')
@@ -54,6 +60,10 @@ export function admitDeclaredDependencies(m, request){
   for(const forbidden of selected.prohibitedServices){
     if(request.services.includes(forbidden))
       throw new TypeError('E_FREESTANDING_HOST_EFFECT: '+forbidden);
+  }
+  for(const service of request.services){
+    if(!PERMITTED_SERVICES[request.mode].includes(service))
+      throw new TypeError('E_TARGET_UNSUPPORTED: unrecognized service '+service);
   }
   for(const required of selected.requiredServices){
     if(!request.services.includes(required))
