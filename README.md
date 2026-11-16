@@ -31,3 +31,7 @@ This README records the intended role of this repository; it is not a claim of f
 `reference/capability_profile.py` validates proposed `schema_version: 1` metadata for named backends/targets and a bounded feature map. Each feature must be `unsupported`, `unverified`, or `verified`; `verified` requires exact source SHA, evidence SHA-256, and a positive executed-case count. `unsupported`/`unverified` must not carry success metadata. Run `python3 -m unittest discover -s tests -v` for host validation tests.
 
 This is a draft schema, **not** a capability declaration or independent attestation. A syntactically valid digest is not proof of real guest execution. Trustworthy parity requires verifier-signed exact-head receipts, negative tests and target-local execution. No backend is marked supported by this repository change.
+
+## Proposed freestanding library modes
+
+[Freestanding target modes v1](contracts/freestanding-target-modes-v1.json) defines strict core-only, allocator-explicit, and hosted-standard-library profiles. The [declaration validator](src/freestanding-modes.mjs) rejects forbidden libraries, host services, missing allocators, unknown capabilities, and forged execution evidence. Run `node --test tests/freestanding-modes.test.mjs` to execute the host-only negative matrix. This does not compile or execute any Atto guest and does **not** establish bare-metal backend parity; it is stacked on the capability-metadata proposal PR #3 and complements `atto-spec` PR #42.
