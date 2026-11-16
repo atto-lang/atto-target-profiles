@@ -16,6 +16,7 @@ test('core has neither heap nor OS prerequisites',()=>{
   denied('E_FREESTANDING_HOST_EFFECT',()=>admitDeclaredDependencies(fresh(),q('freestanding-core',['core'],['os'])));
   denied('E_FREESTANDING_HOST_EFFECT',()=>admitDeclaredDependencies(fresh(),q('freestanding-core',['core'],['heap'])));
   denied('E_FREESTANDING_HOST_EFFECT',()=>admitDeclaredDependencies(fresh(),q('freestanding-core',['core'],['host_scheduler'])));
+  denied('E_TARGET_UNSUPPORTED',()=>admitDeclaredDependencies(fresh(),q('freestanding-core',['core'],['unclassified_magic'])));
 });
 test('alloc requires an explicit allocator, not OS or hidden malloc',()=>{
   denied('E_ALLOCATOR_REQUIRED',()=>admitDeclaredDependencies(fresh(),q('freestanding-alloc',['core','alloc'])));
