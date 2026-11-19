@@ -1,6 +1,12 @@
+> **AI agent instructions (organization-wide):** Before working on code, issues, or pull requests, read and follow the [organization `AGENTS.md`](https://github.com/atto-lang/.github/blob/main/AGENTS.md), including its **merge-first stealth-development policy**. Honor any repository-local `AGENTS.md`, explicit holds, and GitHub-enforced rules.
+
 # atto-target-profiles
 
 Target platform profiles, runtime capabilities, and portability constraints for AttoLang.
+
+## Naming migration and language authority
+
+This repository is maintained at [atto-lang/atto-target-profiles](https://github.com/atto-lang/atto-target-profiles); use `https://github.com/atto-lang/atto-target-profiles.git` for Git remotes and canonical `.atto` source examples. The normative language contract is [atto-spec](https://github.com/atto-lang/atto-spec), with executable guest evidence tracked by [atto-platform-conformance](https://github.com/atto-lang/atto-platform-conformance). Follow current ownership, borrowing, effects, actor, and syntax rules there; do not infer implemented features from a README or unexecuted CI.
 
 ## Purpose
 
@@ -26,8 +32,22 @@ This README records the intended role of this repository; it is not a claim of f
 - [Language specification](https://github.com/atto-lang/atto-spec)
 - [Cross-platform conformance](https://github.com/atto-lang/atto-platform-conformance)
 
-## Experimental capability profile validation (host-only)
+## Repository ownership and contribution routing
 
-`reference/capability_profile.py` validates proposed `schema_version: 1` metadata for named backends/targets and a bounded feature map. Each feature must be `unsupported`, `unverified`, or `verified`; `verified` requires exact source SHA, evidence SHA-256, and a positive executed-case count. `unsupported`/`unverified` must not carry success metadata. Run `python3 -m unittest discover -s tests -v` for host validation tests.
+**Belongs here:** Machine-readable target profiles, backend capability names, supported host/ABI combinations, memory constraints and explicit exclusions.
 
-This is a draft schema, **not** a capability declaration or independent attestation. A syntactically valid digest is not proof of real guest execution. Trustworthy parity requires verifier-signed exact-head receipts, negative tests and target-local execution. No backend is marked supported by this repository change.
+**Belongs elsewhere:** Device drivers belong in atto-platform.*; compiler implementers enforce the profiles inside atto-source.*; language semantics remain in atto-spec.
+
+**Security and portability boundary:** Profiles are declarations, not proof: require conformance receipts for feature support and fail-closed capability admission on unsupported targets.
+
+AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
+
+**Acceptance:** name the exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
+
+## Machine-readable backend capability inventory (Rust-only, draft)
+
+The architecture matrix is [published on main](https://github.com/atto-lang/.github/blob/main/docs/compiler-feature-matrix.md). The new `profiles/compiler-feature-capabilities-v1.tsv` records all 11 backend components and 10 common features (110 rows), with distinct `soft_real_time` and `hard_real_time`. The `intent` field is an architectural responsibility designation, not demonstrated support. The `outcome` field uses `PASSED`, `FAILED`, `UNSUPPORTED` or `NOT_EXECUTED`; **all 110 initial entries are NOT_EXECUTED because no authenticated guest receipts have been imported.**
+
+The draft's unmerged Python-only reference validator and Python tests are replaced by `src/capability_matrix.rs`, a dependency-free Rust schema validator and 15 Rust tests. CI uses `rustc --edition=2021 --test src/capability_matrix.rs` and runs the compiled checker on the TSV. This is a deliberate migration from the draft's unused JSON v1 prototype to TSV v1, not a claim of historical data-format compatibility.
+
+The Rust tool enforces complete inventory coverage, no duplicate or unknown backend/feature/intent, and fail-closed execution metadata. A synthetic hash string can satisfy **structural** validation; it is *not* proof of compiled guest execution. Only `atto-platform-conformance` may provide independently authenticated execution receipts. This repository's checks are host-model only; no actual Atto guest is compiled or run here.
