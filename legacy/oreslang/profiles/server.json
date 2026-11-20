@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "server",
+  "backends": [
+    "llvm",
+    "graal",
+    "javascript"
+  ],
+  "capabilities": [
+    "clock",
+    "random",
+    "net.client",
+    "net.server",
+    "fs.read",
+    "fs.write",
+    "threads",
+    "interop.java",
+    "interop.native",
+    "dynamic.code",
+    "heap",
+    "gc"
+  ],
+  "notes": "Potential host upper bounds only, including Node.js JavaScript backend; never grants. Node host API/worker adapters require explicit capability admission"
+}

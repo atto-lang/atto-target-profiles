@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "entry": "firmware",
+  "target": "embedded",
+  "backend": "llvm",
+  "grants": [],
+  "libraryProfile": "core",
+  "providers": [],
+  "nodes": [
+    {
+      "id": "firmware",
+      "layer": "app",
+      "targets": [
+        "embedded"
+      ],
+      "requires": [],
+      "imports": [
+        "ores.core/numeric"
+      ],
+      "providerRequires": []
+    },
+    {
+      "id": "ores.core/numeric",
+      "layer": "core",
+      "targets": [
+        "embedded"
+      ],
+      "requires": [],
+      "imports": [],
+      "providerRequires": []
+    }
+  ]
+}
