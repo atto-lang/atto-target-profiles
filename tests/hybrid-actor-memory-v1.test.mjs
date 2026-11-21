@@ -48,6 +48,17 @@ test('Ref32 alignment math is exact and the high unsigned range survives',()=>{
 test('NET generation16/slot16 is never mistaken for LLVM offset-Ref32',()=>{
   assert.equal(profile.backend_status.llvm.storage_abi_candidate,'offset8_plus_one');
   assert.equal(profile.backend_status.net.storage_abi_candidate,'generation16_slot16');
+  assert.equal(profile.backend_status.net.control_plane_storage_abi_candidate,
+    'control_generation12_slot20_v1');
+  assert.equal(profile.backend_status.net.control_plane_slot_bits,20);
+  assert.equal(profile.backend_status.net.control_plane_generation_bits,12);
+  assert.equal(profile.backend_status.net.control_plane_slot_bits+
+    profile.backend_status.net.control_plane_generation_bits,32);
+  assert.notEqual(profile.backend_status.net.control_plane_storage_abi_candidate,
+    profile.backend_status.net.storage_abi_candidate);
+  assert.equal(profile.backend_status.net.control_plane_compiled_guest_parity,'NOT_EXECUTED');
+  assert.equal(profile.policy.net_control_plane_ref32_is_not_actor_guest_ref32,true);
+
   assert.equal(profile.backend_status.wasm.storage_abi_candidate,'offset8_plus_one');
   assert.equal(profile.policy.never_reinterpret_ref32_word,true);
   assert.equal(profile.policy.backend_storage_is_not_wire_abi,true);
