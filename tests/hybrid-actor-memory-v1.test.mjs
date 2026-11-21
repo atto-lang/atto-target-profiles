@@ -14,7 +14,7 @@ test('hybrid memory contract names every atto-source.* backend exactly once',()=
   assert.equal(profile.status,'CANDIDATE_AND_UNCERTIFIED');
   assert.deepEqual(Object.keys(profile.backend_status).sort(),[...repos].sort());
   assert.equal(new Set(profile.features).size,profile.features.length);
-  assert.ok(profile.features.length >= 19);
+  assert.ok(profile.features.length === 20);
   for(const name of repos){
     const row=profile.backend_status[name];
     assert.equal(row.repo,'atto-lang/atto-source.'+name);
@@ -57,7 +57,7 @@ test('NET generation16/slot16 is never mistaken for LLVM offset-Ref32',()=>{
 
 test('optional wide memory and capability feature names remain independent',()=>{
   for(const f of ['actor_handle32_table','actor_handle64','actor_segments','actor_extended_heap',
-    'wasm_memory64','capability128_software','capability128_hardware','simd128','simd256',
+    'wasm_memory64','native_pointer_width','capability128_software','capability128_hardware','simd128','simd256',
     'simd512','integer128','gpu_dma_pinning','actor_transfer_take','actor_arena_realtime_prefault'])
     assert.ok(profile.features.includes(f),f);
   assert.equal(profile.policy.compiled_guest_evidence_required,true);
