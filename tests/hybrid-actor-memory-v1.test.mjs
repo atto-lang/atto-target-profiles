@@ -91,7 +91,16 @@ test('canonical linked-node .atto guest corpus is tracked without invented backe
  assert.notEqual(corpus.positive_blob_sha,corpus.negative_blob_sha);
  const level=Object.fromEntries(Object.entries(profile.backend_status)
    .map(([name,row])=>[name,row.node_graph_implementation_level]));
- assert.equal(level.net,'NARROW_GUEST_COMPILER_SOURCE_AUTHORED');
+ assert.equal(level.net,'NARROW_GUEST_COMPILER_CURRENT_MAIN_INTEGRATED_NOT_EXECUTED');
+ const net=profile.backend_status.net;
+ assert.equal(net.node_graph_work,'atto-lang/atto-source.net#201');
+ assert.equal(net.node_graph_original_runtime,'atto-lang/atto-source.net#173');
+ assert.equal(net.node_graph_original_compiler,'atto-lang/atto-source.net#175');
+ assert.equal(net.node_graph_main_integration_head,'468439a49eda1bf8711eaebe31d9b25f387746c2');
+ assert.equal(net.node_graph_positive_guest,'NOT_EXECUTED');
+ assert.equal(net.node_graph_negative_guest,'NOT_EXECUTED');
+ assert.equal(net.node_graph_compiled_guest_receipt,null);
+ assert.equal(profile.policy.net_guest_main_integrated_source_is_not_guest_execution,true);
  assert.equal(level.rs,'SCALAR_ACTOR_GUEST_EXISTS_NODE_GRAPH_NEGATIVE_AUTHORED');
  assert.equal(level.llvm,'SCALAR_ACTOR_GUEST_EXISTS_NODE_GRAPH_NEGATIVE_AUTHORED');
  assert.equal(level.wasm,'SCALAR_ACTOR_POOLED_WASM_GUEST_EXISTS_NODE_GRAPH_NEGATIVE_AUTHORED');
