@@ -22,5 +22,5 @@ hardware execution. Backend-specific proposals are
 [Java #218](https://github.com/atto-lang/atto-source.java/pull/218) and
 [LLVM #294](https://github.com/atto-lang/atto-source.llvm/pull/294).
 Normative hosting policy is in
-[atto-spec](https://github.com/atto-lang/atto-spec/blob/main/language/confidential-computing-v1.md)
+[atto-spec draft #193](https://github.com/atto-lang/atto-spec/pull/193)
 (proposed draft), with negative vectors in atto-platform-conformance.
