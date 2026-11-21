@@ -1,0 +1,1011 @@
+{
+  "schema_version": 1,
+  "contract": "atto.hybrid-actor-memory.v1",
+  "contract_url": "https://github.com/atto-lang/atto-spec/pull/91",
+  "conformance_url": "https://github.com/atto-lang/atto-platform-conformance/pull/461",
+  "source_tracker_url": "https://github.com/atto-lang/atto-platform-conformance/issues/549",
+  "status": "CANDIDATE_AND_UNCERTIFIED",
+  "last_audited": "2026-11-21",
+  "reference_abi": {
+    "default": "offset8_plus_one",
+    "word_bits": 32,
+    "null": 0,
+    "alignment": 8,
+    "max_logical_start_bytes": "34359738352",
+    "generation_and_owner_out_of_line": true
+  },
+  "abi_kinds": [
+    "offset8_plus_one",
+    "generation16_slot16",
+    "handle32_table_versioned",
+    "handle64_versioned",
+    "not_frozen"
+  ],
+  "policy": {
+    "backend_storage_is_not_wire_abi": true,
+    "never_reinterpret_ref32_word": true,
+    "backend_must_negotiate_abi": true,
+    "unsupported_must_fail_closed": true,
+    "compiled_guest_evidence_required": true
+  },
+  "features": [
+    "actor_ref32_v1",
+    "actor_arena_dynamic",
+    "actor_arena_realtime_prefault",
+    "actor_segments",
+    "actor_handle32_table",
+    "actor_handle64",
+    "actor_extended_heap",
+    "wasm_memory64",
+    "actor_transfer_take",
+    "actor_frozen_share",
+    "buffer_zero_copy",
+    "pointer_checked",
+    "capability128_software",
+    "capability128_hardware",
+    "simd128",
+    "simd256",
+    "simd512",
+    "integer128",
+    "gpu_dma_pinning"
+  ],
+  "backend_status": {
+    "java": {
+      "repo": "atto-lang/atto-source.java",
+      "source_candidate": "atto-lang/atto-source.java#1153",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Native FFM actor arena candidate; not a ref32 compiler guest proof",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "llvm": {
+      "repo": "atto-lang/atto-source.llvm",
+      "source_candidate": "atto-lang/atto-source.llvm#742",
+      "storage_abi_candidate": "offset8_plus_one",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Host native elastic arena candidate with 8-byte aligned offset Ref32 and separate slot generation",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "net": {
+      "repo": "atto-lang/atto-source.net",
+      "source_candidate": "atto-lang/atto-source.net#173",
+      "storage_abi_candidate": "generation16_slot16",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Runtime 32-bit generation/slot handle is not offset8_plus_one; source guest lowering separately stacked #175",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "forge": {
+      "repo": "atto-lang/atto-source.forge",
+      "source_candidate": "atto-lang/atto-source.forge#136",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Bounded scalar actors and private heaps are in candidate PRs; no shared binary ref ABI proof",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "wasm": {
+      "repo": "atto-lang/atto-source.wasm",
+      "source_candidate": "atto-lang/atto-source.wasm#221",
+      "storage_abi_candidate": "offset8_plus_one",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Host-only WebAssembly.Memory prototype returns aligned-offset word; no guest allocator proof",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "rs": {
+      "repo": "atto-lang/atto-source.rs",
+      "source_candidate": "atto-lang/atto-source.rs#264",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Narrow compiler ownership/pointer subset; no certified actor heap parity",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "cranelift": {
+      "repo": "atto-lang/atto-source.cranelift",
+      "source_candidate": "atto-lang/atto-source.cranelift#55",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Must fail closed on unsupported actor pointer/heap operations",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "js": {
+      "repo": "atto-lang/atto-source.js",
+      "source_candidate": "atto-lang/atto-source.js",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "No certified hybrid guest actor heap",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "atto": {
+      "repo": "atto-lang/atto-source.atto",
+      "source_candidate": "atto-lang/atto-source.atto",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Scaffolding/self-hosted target; do not claim compiled guest memory",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "hdl": {
+      "repo": "atto-lang/atto-source.hdl",
+      "source_candidate": "atto-lang/atto-source.hdl",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Hardware/profile-specific target, no general native heap equivalence",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    },
+    "realtime": {
+      "repo": "atto-lang/atto-source.realtime",
+      "source_candidate": "atto-lang/atto-source.realtime",
+      "storage_abi_candidate": "not_frozen",
+      "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
+      "notes": "Profile shell; hard-RT prefault proof is not established",
+      "compiled_guest_memory_parity": "NOT_EXECUTED",
+      "supported_features": [],
+      "feature_evidence": {
+        "actor_ref32_v1": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_dynamic": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_arena_realtime_prefault": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_segments": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle32_table": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_handle64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_extended_heap": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "wasm_memory64": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_transfer_take": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "actor_frozen_share": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "buffer_zero_copy": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "pointer_checked": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_software": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "capability128_hardware": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd256": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "simd512": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "integer128": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        },
+        "gpu_dma_pinning": {
+          "status": "NOT_EXECUTED",
+          "receipt": null
+        }
+      }
+    }
+  }
+}
