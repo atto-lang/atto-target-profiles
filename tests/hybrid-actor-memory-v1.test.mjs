@@ -96,7 +96,13 @@ test('canonical linked-node .atto guest corpus is tracked without invented backe
  assert.equal(net.node_graph_work,'atto-lang/atto-source.net#201');
  assert.equal(net.node_graph_original_runtime,'atto-lang/atto-source.net#173');
  assert.equal(net.node_graph_original_compiler,'atto-lang/atto-source.net#175');
- assert.equal(net.node_graph_main_integration_head,'468439a49eda1bf8711eaebe31d9b25f387746c2');
+ assert.equal(net.node_graph_main_integration_head,'0f576cd16029f247c84e128948e856c6f872906b');
+ assert.equal(net.node_graph_main_integration_tree,'e914a6b196635138b919e8fb2b332ca55c2fd6ce');
+ assert.equal(net.node_graph_nativeaot_ci_status,'ZERO_STEP_ADMISSION_FAILURE_BOTH_OS_NOT_EXECUTED');
+ assert.equal(net.node_graph_nativeaot_ci_run,44955921498);
+ assert.equal(net.node_graph_hardened_negative_fixture_blob,'7544665f302167451fdc47ce11f5f108f703b7ed');
+ assert.equal(net.node_graph_negative_native_artifact_distinct_requirement,true);
+ assert.deepEqual(net.node_graph_source_keyword_bindings_rejected,['mtd','begin','raises','throws','match','trap']);
  assert.equal(net.node_graph_positive_guest,'NOT_EXECUTED');
  assert.equal(net.node_graph_negative_guest,'NOT_EXECUTED');
  assert.equal(net.node_graph_compiled_guest_receipt,null);
