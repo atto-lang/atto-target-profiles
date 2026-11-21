@@ -29,7 +29,8 @@
     "compiled_guest_evidence_required": true,
     "zero_step_ci_is_not_guest_evidence": true,
     "fail_closed_source_rejection_is_not_positive_guest_parity": true,
-    "net_control_plane_ref32_is_not_actor_guest_ref32": true
+    "net_control_plane_ref32_is_not_actor_guest_ref32": true,
+    "net_guest_main_integrated_source_is_not_guest_execution": true
   },
   "features": [
     "actor_ref32_v1",
@@ -250,7 +251,7 @@
       "source_candidate": "atto-lang/atto-source.net#173",
       "storage_abi_candidate": "generation16_slot16",
       "storage_provenance": "DRAFT_SOURCE_INSPECTION_NOT_AOT_CERTIFIED",
-      "notes": "Actor guest runtime uses generation16_slot16; independent unmanaged CONTROL plane uses generation12_slot20. Neither is LLVM offset8_plus_one. NativeAOT guest lowering remains stacked #175; no compiled guest receipt.",
+      "notes": "Current-main draft #201 composes runtime #173 and narrow .atto emitter #175 with lazy generation16_slot16 guest refs, independent generation12_slot20 native CONTROL and demand-backed allocation-before-publication. NativeAOT guest execution/zero-GC guarantees NOT_VERIFIED; draft only.",
       "compiled_guest_memory_parity": "NOT_EXECUTED",
       "supported_features": [],
       "feature_evidence": {
@@ -335,16 +336,20 @@
           "receipt": null
         }
       },
-      "node_graph_implementation_level": "NARROW_GUEST_COMPILER_SOURCE_AUTHORED",
+      "node_graph_implementation_level": "NARROW_GUEST_COMPILER_CURRENT_MAIN_INTEGRATED_NOT_EXECUTED",
       "node_graph_positive_guest": "NOT_EXECUTED",
       "node_graph_negative_guest": "NOT_EXECUTED",
       "node_graph_compiled_guest_receipt": null,
-      "node_graph_work": "atto-lang/atto-source.net#175",
+      "node_graph_work": "atto-lang/atto-source.net#201",
       "control_plane_storage_abi_candidate": "control_generation12_slot20_v1",
       "control_plane_abi_source": "atto-lang/atto-source.net#173",
       "control_plane_slot_bits": 20,
       "control_plane_generation_bits": 12,
-      "control_plane_compiled_guest_parity": "NOT_EXECUTED"
+      "control_plane_compiled_guest_parity": "NOT_EXECUTED",
+      "node_graph_original_runtime": "atto-lang/atto-source.net#173",
+      "node_graph_original_compiler": "atto-lang/atto-source.net#175",
+      "node_graph_main_integration_head": "468439a49eda1bf8711eaebe31d9b25f387746c2",
+      "node_graph_main_integration_scope": "SOURCE_AUTHORED_MERGEABLE_EXACT_SHA; NativeAOT guest NOT_EXECUTED; no independently approved private CI mirror"
     },
     "forge": {
       "repo": "atto-lang/atto-source.forge",
