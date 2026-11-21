@@ -238,10 +238,11 @@
           "receipt": null
         }
       },
-      "node_graph_implementation_level": "HOST_MEMORY_RUNTIME_CANDIDATE",
+      "node_graph_implementation_level": "SCALAR_ACTOR_GUEST_EXISTS_NODE_GRAPH_NEGATIVE_AUTHORED",
       "node_graph_positive_guest": "NOT_EXECUTED",
       "node_graph_negative_guest": "NOT_EXECUTED",
-      "node_graph_compiled_guest_receipt": null
+      "node_graph_compiled_guest_receipt": null,
+      "node_graph_work": "atto-lang/atto-source.llvm#694"
     },
     "net": {
       "repo": "atto-lang/atto-source.net",
@@ -524,10 +525,11 @@
           "receipt": null
         }
       },
-      "node_graph_implementation_level": "HOST_MEMORY_PROTOTYPE",
+      "node_graph_implementation_level": "SCALAR_ACTOR_POOLED_WASM_GUEST_EXISTS_NODE_GRAPH_NEGATIVE_AUTHORED",
       "node_graph_positive_guest": "NOT_EXECUTED",
       "node_graph_negative_guest": "NOT_EXECUTED",
-      "node_graph_compiled_guest_receipt": null
+      "node_graph_compiled_guest_receipt": null,
+      "node_graph_work": "atto-lang/atto-source.wasm#195"
     },
     "rs": {
       "repo": "atto-lang/atto-source.rs",
@@ -619,7 +621,7 @@
           "receipt": null
         }
       },
-      "node_graph_implementation_level": "SCALAR_ACTOR_GUEST_EXISTS_NODE_GRAPH_UNVERIFIED",
+      "node_graph_implementation_level": "SCALAR_ACTOR_GUEST_EXISTS_NODE_GRAPH_NEGATIVE_AUTHORED",
       "node_graph_positive_guest": "NOT_EXECUTED",
       "node_graph_negative_guest": "NOT_EXECUTED",
       "node_graph_compiled_guest_receipt": null,
@@ -907,10 +909,11 @@
           "receipt": null
         }
       },
-      "node_graph_implementation_level": "SCAFFOLD_NO_COMPILER",
+      "node_graph_implementation_level": "STAGE0_SCALAR_ATTO_GUEST_ONLY_NO_SELFHOSTING",
       "node_graph_positive_guest": "NOT_EXECUTED",
       "node_graph_negative_guest": "NOT_EXECUTED",
-      "node_graph_compiled_guest_receipt": null
+      "node_graph_compiled_guest_receipt": null,
+      "node_graph_work": "atto-lang/atto-source.atto#1"
     },
     "hdl": {
       "repo": "atto-lang/atto-source.hdl",
@@ -1098,10 +1101,11 @@
           "receipt": null
         }
       },
-      "node_graph_implementation_level": "SCAFFOLD_NO_COMPILER",
+      "node_graph_implementation_level": "BOOTSTRAP_PROFILE_NOT_IMPLEMENTED",
       "node_graph_positive_guest": "NOT_EXECUTED",
       "node_graph_negative_guest": "NOT_EXECUTED",
-      "node_graph_compiled_guest_receipt": null
+      "node_graph_compiled_guest_receipt": null,
+      "node_graph_work": "atto-lang/atto-source.realtime#12"
     }
   },
   "canonical_compiled_guest_corpus": {
@@ -1110,6 +1114,19 @@
     "manifest_path": "fixtures/hybrid-actor-memory-v1/manifest.json",
     "positive_blob_sha": "d472cccb3da24ee8f9fed44f99c1c7742d3240de",
     "negative_blob_sha": "7544665f302167451fdc47ce11f5f108f703b7ed",
-    "required": "exact source SHA, actual compiler-emitted artifact, guest runtime execution, actor heap retirement"
+    "required": "exact source SHA, actual compiler-emitted artifact, guest runtime execution, actor heap retirement",
+    "source_validation": {
+      "status": "EXECUTED_LOCAL_SOURCE_ONLY",
+      "tested_at": "2026-11-21",
+      "scope": "NODE_SOURCE_FIXTURE_AND_STATUS_INTEGRITY_ONLY_NOT_COMPILER",
+      "source_test_git_blob": "cd8d7591823d2487be3ee04bdde8acd6bfb2558f",
+      "fixture_manifest_git_blob": "9e686ce4e56087b19be391a7d8ff55003af9a2a6",
+      "result": {
+        "tests": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      "ci_runner_status": "GITHUB_ALTERNATE_RUNNER_ZERO_STEPS_NOT_EXECUTED"
+    }
   }
 }
