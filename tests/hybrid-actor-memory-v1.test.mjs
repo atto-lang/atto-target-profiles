@@ -70,3 +70,27 @@ test('no unproven metadata upgrades a target to compiled-guest pass',()=>{
       assert.notEqual(v.status,'PASSED');
   }
 });
+
+test('canonical linked-node .atto guest corpus is tracked without invented backend passes',()=>{
+ const corpus=profile.canonical_compiled_guest_corpus;
+ assert.equal(corpus.repo,'atto-lang/atto-platform-conformance');
+ assert.equal(corpus.pr,461);
+ assert.equal(corpus.positive_blob_sha,'d472cccb3da24ee8f9fed44f99c1c7742d3240de');
+ assert.equal(corpus.negative_blob_sha,'7544665f302167451fdc47ce11f5f108f703b7ed');
+ assert.notEqual(corpus.positive_blob_sha,corpus.negative_blob_sha);
+ const level=Object.fromEntries(Object.entries(profile.backend_status)
+   .map(([name,row])=>[name,row.node_graph_implementation_level]));
+ assert.equal(level.net,'NARROW_GUEST_COMPILER_SOURCE_AUTHORED');
+ assert.equal(level.rs,'SCALAR_ACTOR_GUEST_EXISTS_NODE_GRAPH_UNVERIFIED');
+ for(const name of ['js','cranelift','hdl'])
+   assert.equal(level[name],'FAIL_CLOSED_SOURCE_AUTHORED');
+ for(const name of ['atto','realtime'])
+   assert.equal(level[name],'SCAFFOLD_NO_COMPILER');
+ for(const row of Object.values(profile.backend_status)){
+   assert.equal(row.node_graph_positive_guest,'NOT_EXECUTED');
+   assert.equal(row.node_graph_negative_guest,'NOT_EXECUTED');
+   assert.equal(row.node_graph_compiled_guest_receipt,null);
+ }
+ assert.equal(profile.policy.zero_step_ci_is_not_guest_evidence,true);
+ assert.equal(profile.policy.fail_closed_source_rejection_is_not_positive_guest_parity,true);
+});
