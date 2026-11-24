@@ -4,7 +4,8 @@
   "backends": [
     "llvm",
     "graal",
-    "javascript"
+    "javascript",
+    "wasm"
   ],
   "capabilities": [
     "clock",
@@ -20,5 +21,5 @@
     "heap",
     "gc"
   ],
-  "notes": "Potential host upper bounds only, including Node.js JavaScript backend; never grants. Node host API/worker adapters require explicit capability admission"
+  "notes": "Potential host capability upper bounds only, not grants. Wasm is admitted for pure zero-import scalar artifacts only until a separately verified server/desktop host-capability ABI and authenticated native AOT artifact loader are available. Browser/Node engines may JIT; native compiler-free Wasmtime AOT is host/CPU-version-specific."
 }

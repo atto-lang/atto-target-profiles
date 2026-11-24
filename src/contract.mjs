@@ -152,6 +152,14 @@ export function validateClosure(input,profiles,requiredLibraryProfile=null) {
     for (const cap of grants)
       if(cap==="interop.java"||cap==="interop.native")
         errors.push("backend javascript on server does not admit "+cap);
+  // Server/desktop Wasm is presently a pure zero-import core-Wasm scalar
+  // candidate. Host profile upper bounds (fs/net/threads/GC/interop) are
+  // NOT a Wasm capability broker: no guest-visible imports are admitted.
+  // Later versioned WASI/WIT or actor I/O profiles need independent review,
+  // explicit manifests, compiler effect checking and runtime enforcement.
+  if ((target==="server" || target==="desktop") && backend==="wasm" &&
+      unique(grants) && grants.length!==0)
+    errors.push("hosted wasm scalar profile admits zero host capability grants");
   // Check for proxies before accessing array.length: revoked proxies
   // can throw even from seemingly innocent shape/size probes.
   if(nodeTypes.isProxy(nodes)||!Array.isArray(nodes))
