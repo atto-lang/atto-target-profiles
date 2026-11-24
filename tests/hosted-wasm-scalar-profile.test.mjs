@@ -56,7 +56,9 @@ test("hosted Wasm cannot bypass no-import ABI by moving effects to an imported u
   for(const target of ["server","desktop"]){
     const g=pure(target);
     g.nodes[1].requires=["net.server"];
-    assert.match(diagnostic(g),/requirements|missing build grants/);
+    const denied = inspect(g);
+    assert.equal(denied.ok, false);
+    assert.match(denied.errors.join("; "), /ores\.core\/constant: ores\.core cannot require ambient host capabilities/);
     g.grants=["net.server"];
     g.nodes[0].requires=["net.server"];
     assert.match(diagnostic(g),/hosted wasm scalar profile admits zero host capability grants/);
