@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "name": "desktop",
+  "backends": [
+    "llvm",
+    "graal",
+    "wasm"
+  ],
+  "capabilities": [
+    "clock",
+    "random",
+    "net.client",
+    "net.server",
+    "fs.read",
+    "fs.write",
+    "threads",
+    "interop.java",
+    "interop.native",
+    "dynamic.code",
+    "heap",
+    "gc",
+    "device.camera"
+  ],
+  "notes": "Potential host capability upper bounds only, not grants. Wasm is admitted for pure zero-import scalar artifacts only until a separately verified server/desktop host-capability ABI and authenticated native AOT artifact loader are available. Browser/Node engines may JIT; native compiler-free Wasmtime AOT is host/CPU-version-specific."
+}

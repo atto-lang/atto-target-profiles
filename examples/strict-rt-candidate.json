@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "profile": "llvm-aot-rt-strict",
+  "target": {
+    "architecture": "cortex-m7",
+    "board": "test-board-v1",
+    "os": "zephyr",
+    "scheduler": "fixed-priority-preemptive",
+    "kernelConfigSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "cpuHz": 480000000
+  },
+  "provenance": {
+    "sourceGitTreeSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sourceTreeSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "compilerBinarySha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runtimeBinarySha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "imageSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ffiClosureSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "timing": {
+    "periodUs": 1000,
+    "deadlineUs": 800,
+    "minInterarrivalUs": 1000,
+    "releaseJitterUs": 20,
+    "wcetUpperUs": 500,
+    "blockingUpperUs": 20,
+    "dispatchUpperUs": 30,
+    "irqInterferenceUpperUs": 30
+  },
+  "resources": {
+    "arenaBytes": 65536,
+    "stackBytes": 8192,
+    "continuationBytes": 2048,
+    "mailboxCapacity": 16,
+    "controlCredits": 4,
+    "actorCapacity": 1,
+    "criticalTurnAllocBytes": 0,
+    "criticalTurnCopyBytes": 0
+  },
+  "closure": {
+    "entry": "tick",
+    "units": [
+      {
+        "id": "tick",
+        "calls": [
+          "kernel"
+        ],
+        "effects": [
+          "clock.monotonic",
+          "actor.send.bounded"
+        ],
+        "loopBoundsProven": true,
+        "stackBoundBytes": 4096,
+        "allocUpperBytes": 0,
+        "copyUpperBytes": 0,
+        "layout": "aosoa"
+      },
+      {
+        "id": "kernel",
+        "calls": [],
+        "effects": [
+          "compute",
+          "memory.read",
+          "memory.write"
+        ],
+        "loopBoundsProven": true,
+        "stackBoundBytes": 4096,
+        "allocUpperBytes": 0,
+        "copyUpperBytes": 0,
+        "layout": "soa"
+      }
+    ]
+  },
+  "evidence": {
+    "staticWcetReportSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "linkedImageAuditSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "allocatorTraceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "schedulerAnalysisSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ownershipLifetimeAuditSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "hardwareMeasurementSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "entry": "app.atto",
+  "nodes": [
+    {
+      "id": "app.atto",
+      "targets": [
+        "browser",
+        "edge-js",
+        "android",
+        "ios",
+        "server"
+      ],
+      "requires": [
+        "net.client",
+        "clock"
+      ],
+      "imports": [
+        "net.atto"
+      ]
+    },
+    {
+      "id": "net.atto",
+      "targets": [
+        "browser",
+        "edge-js",
+        "android",
+        "ios",
+        "server"
+      ],
+      "requires": [
+        "net.client"
+      ],
+      "imports": []
+    }
+  ]
+}

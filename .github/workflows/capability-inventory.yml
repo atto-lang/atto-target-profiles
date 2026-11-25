@@ -1,0 +1,43 @@
+name: Capability inventory Rust host-model checks (NOT guest execution)
+on:
+  pull_request:
+    paths:
+      - 'src/capability_matrix.rs'
+      - 'profiles/compiler-feature-capabilities-v1.tsv'
+      - 'README.md'
+      - '.github/workflows/capability-inventory.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/capability_matrix.rs'
+      - 'profiles/compiler-feature-capabilities-v1.tsv'
+      - 'README.md'
+      - '.github/workflows/capability-inventory.yml'
+permissions:
+  contents: read
+jobs:
+  rust-structural-only:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact immutable tree
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git diff --exit-code --quiet HEAD --
+      - name: Compile and execute Rust positive and adversarial tests
+        run: |
+          rustc --version
+          rustc --edition=2021 --test src/capability_matrix.rs -o "$RUNNER_TEMP/capability_tests"
+          "$RUNNER_TEMP/capability_tests" --nocapture
+      - name: Validate full inventory and print noncertifying summary
+        run: |
+          rustc --edition=2021 src/capability_matrix.rs -o "$RUNNER_TEMP/capability"
+          "$RUNNER_TEMP/capability" --check profiles/compiler-feature-capabilities-v1.tsv
+          "$RUNNER_TEMP/capability" --summary profiles/compiler-feature-capabilities-v1.tsv
+      - name: Evidence disclaimer
+        run: echo 'SOURCE_ONLY; NO_ATTO_GUEST_EXECUTION; NOT_CERTIFIED'

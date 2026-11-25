@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:oreslang:target-profiles:strict-rt-candidate:v1",
+  "title": "Oreslang strict RT stage-0 structural candidate v1",
+  "description": "SHAPE ONLY. A valid manifest proves neither compiler origins, actual no-allocation, bound truth nor physical hard-real-time certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profile",
+    "target",
+    "provenance",
+    "timing",
+    "resources",
+    "closure",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "profile": {
+      "const": "llvm-aot-rt-strict"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "architecture",
+        "board",
+        "os",
+        "scheduler",
+        "kernelConfigSha256",
+        "cpuHz"
+      ],
+      "properties": {
+        "architecture": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f]+$"
+        },
+        "board": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f]+$"
+        },
+        "os": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f]+$"
+        },
+        "scheduler": {
+          "const": "fixed-priority-preemptive"
+        },
+        "kernelConfigSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "cpuHz": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceGitTreeSha",
+        "sourceTreeSha256",
+        "compilerBinarySha256",
+        "runtimeBinarySha256",
+        "imageSha256",
+        "ffiClosureSha256"
+      ],
+      "properties": {
+        "sourceGitTreeSha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "sourceTreeSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "compilerBinarySha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "runtimeBinarySha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "imageSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "ffiClosureSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "periodUs",
+        "deadlineUs",
+        "minInterarrivalUs",
+        "releaseJitterUs",
+        "wcetUpperUs",
+        "blockingUpperUs",
+        "dispatchUpperUs",
+        "irqInterferenceUpperUs"
+      ],
+      "properties": {
+        "periodUs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "deadlineUs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "minInterarrivalUs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "releaseJitterUs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "wcetUpperUs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "blockingUpperUs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "dispatchUpperUs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "irqInterferenceUpperUs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arenaBytes",
+        "stackBytes",
+        "continuationBytes",
+        "mailboxCapacity",
+        "controlCredits",
+        "actorCapacity",
+        "criticalTurnAllocBytes",
+        "criticalTurnCopyBytes"
+      ],
+      "properties": {
+        "arenaBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stackBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "continuationBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "mailboxCapacity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "controlCredits": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "actorCapacity": {
+          "const": 1
+        },
+        "criticalTurnAllocBytes": {
+          "const": 0
+        },
+        "criticalTurnCopyBytes": {
+          "const": 0
+        }
+      }
+    },
+    "closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "units"
+      ],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "units": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "calls",
+              "effects",
+              "loopBoundsProven",
+              "stackBoundBytes",
+              "allocUpperBytes",
+              "copyUpperBytes",
+              "layout"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]{0,127}$"
+              },
+              "calls": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]{0,127}$"
+                }
+              },
+              "effects": {
+                "type": "array",
+                "maxItems": 16,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "compute",
+                    "memory.read",
+                    "memory.write",
+                    "clock.monotonic",
+                    "actor.send.bounded"
+                  ]
+                }
+              },
+              "loopBoundsProven": {
+                "const": true
+              },
+              "stackBoundBytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "allocUpperBytes": {
+                "const": 0
+              },
+              "copyUpperBytes": {
+                "const": 0
+              },
+              "layout": {
+                "enum": [
+                  "none",
+                  "aos",
+                  "soa",
+                  "aosoa",
+                  "soaos"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "staticWcetReportSha256",
+        "linkedImageAuditSha256",
+        "allocatorTraceSha256",
+        "schedulerAnalysisSha256",
+        "ownershipLifetimeAuditSha256",
+        "hardwareMeasurementSha256"
+      ],
+      "properties": {
+        "staticWcetReportSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "linkedImageAuditSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "allocatorTraceSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "schedulerAnalysisSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "ownershipLifetimeAuditSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "hardwareMeasurementSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
