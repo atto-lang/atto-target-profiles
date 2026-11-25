@@ -63,11 +63,19 @@ test("hash admission cannot coerce symbols or objects into authority",()=>{
 test("untrusted proxy reflection traps are denied without escaping",()=>{
   const variants=[
     new Proxy(clean(),{getPrototypeOf(){throw Error("trap")}}),
-    new Proxy(clean(),{get(){throw Error("trap")}}),
     {...clean(),identity:new Proxy(clean().identity,{
       getOwnPropertyDescriptor(){throw Error("trap")}
     })},
   ];
   for (const value of variants)
     assert.equal(assess(value).classification,"DENIED");
+});
+
+test("descriptor snapshots never invoke a proxy value getter",()=>{
+  let reads=0;
+  const value=new Proxy(clean(),{get(){reads++;throw Error("value getter invoked")}});
+  const result=assess(value);
+  assert.equal(reads,0);
+  assert.equal(result.classification,"CANDIDATE_REVIEW_REQUIRED");
+  assert.equal(result.ok,true);
 });

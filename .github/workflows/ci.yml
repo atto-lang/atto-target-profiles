@@ -4,16 +4,19 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   contracts:
-    runs-on: ubuntu-latest
+    runs-on: [indiebuild-linux-arm64]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-          submodules: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Verify exact contract source head, root Git tree and clean checkout
         shell: bash
         env:
@@ -41,7 +44,38 @@ jobs:
             tee "$RUNNER_TEMP/f64-artifact-contract.log"
           grep -Fx '# fail 0' "$RUNNER_TEMP/f64-artifact-contract.log"
           grep -Fx '# skipped 0' "$RUNNER_TEMP/f64-artifact-contract.log"
-          grep -E '^# pass [1-9][0-9]* "$RUNNER_TEMP/f64-artifact-contract.log"
+          grep -E '^# pass [1-9][0-9]*/f64-artifact-contract.log"
+      - name: Record executed schema-only checks, not a guest certificate
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          node --input-type=commonjs -e '
+            const fs=require("node:fs"),crypto=require("node:crypto");
+            const x=fs.readFileSync(process.env.RUNNER_TEMP+"/f64-artifact-contract.log");
+            const sha=b=>crypto.createHash("sha256").update(b).digest("hex");
+            const tree=require("node:child_process").execFileSync("git",
+              ["rev-parse","HEAD^{tree}"],{encoding:"utf8"}).trim();
+            const data={schema:"atto-f64-target-profile-contract-v1",
+              sourceSha:process.env.EXPECTED_HEAD,rootTreeSha:tree,
+              testOutputSha256:sha(x),runId:process.env.GITHUB_RUN_ID,
+              execution:"EXECUTED_HOST_CONTRACT",
+              wasmGuest:"NOT_EXECUTED",release:"NOT_CERTIFIED"};
+            if(!/^[0-9a-f]{40}$/.test(data.sourceSha)||
+                !/^[0-9a-f]{40}$/.test(data.rootTreeSha))
+              throw Error("invalid target-profile source identity");
+            fs.writeFileSync(process.env.RUNNER_TEMP+"/f64-artifact-contract-receipt.json",
+              JSON.stringify(data,null,2)+"\n",{flag:"wx",mode:0o600});
+          '
+      - name: Upload schema receipt only (no private source or compiler)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: f64-artifact-schema-only-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/f64-artifact-contract-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+ "$RUNNER_TEMP/f64-artifact-contract.log"
       - name: Record executed schema-only checks, not a guest certificate
         shell: bash
         env:
