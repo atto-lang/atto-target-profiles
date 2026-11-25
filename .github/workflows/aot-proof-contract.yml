@@ -1,0 +1,37 @@
+name: AOT closed-world structural contract (not native AOT certification)
+on:
+  pull_request:
+    paths:
+      - 'src/aot-admission.mjs'
+      - 'tests/aot-admission.test.mjs'
+      - 'docs/CLOSED_WORLD_AOT_PROOF_V1.md'
+      - '.github/workflows/aot-proof-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/aot-admission.mjs'
+      - 'tests/aot-admission.test.mjs'
+      - 'docs/CLOSED_WORLD_AOT_PROOF_V1.md'
+      - '.github/workflows/aot-proof-contract.yml'
+permissions:
+  contents: read
+jobs:
+  reference-model:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Exact HEAD and root tree
+        env:
+          EXPECTED_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_HEAD"
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Run structural and mutation tests only
+        run: node --test tests/aot-admission.test.mjs

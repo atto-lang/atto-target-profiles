@@ -1,0 +1,70 @@
+# Manual, trusted-repository acceptance only. No push/PR dispatch.
+name: IndieBuild native runner acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: indiebuild-native-acceptance-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  produce:
+    name: Produce immutable evidence
+    runs-on: indiebuild-linux-arm64
+    timeout-minutes: 12
+    steps:
+      - name: Pin and validate checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Assert native Linux guest and exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = ARM64
+          case "$RUNNER_NAME" in indiebuild-*) ;; *) exit 2 ;; esac
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Write immutable SHA receipt
+        shell: bash
+        env:
+          EXPECTED_KIND: native-gha
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_KIND" = native-gha
+          mkdir -p proof
+          printf '%s\n' "$GITHUB_SHA" > proof/commit.sha
+          (cd proof && sha256sum commit.sha > commit.sha256)
+      - name: Upload receipt
+        if: ${{ success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: indiebuild-native-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: proof/
+          if-no-files-found: error
+          retention-days: 1
+  consume:
+    name: Consume and verify artifact
+    needs: produce
+    if: ${{ needs.produce.result == 'success' }}
+    runs-on: indiebuild-linux-arm64
+    timeout-minutes: 12
+    steps:
+      - name: Download receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: indiebuild-native-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: proof/
+      - name: Verify receipt integrity
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = ARM64
+          case "$RUNNER_NAME" in indiebuild-*) ;; *) exit 2 ;; esac
+          cd proof
+          sha256sum --check commit.sha256
+          test "$(cat commit.sha)" = "$EXPECTED_COMMIT"

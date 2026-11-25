@@ -83,3 +83,38 @@ Initial integration status:
 Release-or-stronger builds retain only the semantic closure of explicit roots. Core, alloc, actor runtime, stdlib, user code, generic instantiations, error paths, metadata, dispatch tables, async continuations, and runtime subsystems are all removable when unreachable.
 
 Reflection must not be used as a reason to conservatively retain arbitrary code. External reachability is expressed through explicit FFI/export roots, generated registries, reload contracts, or future versioned reachability manifests.
+
+
+## WASM deployments on browser, server and desktop (strict candidate gate)
+
+Target profiles now declare the `wasm` backend as a **potential** backend
+for `server` and `desktop`, in addition to `browser`. The new hosted
+Wasm admission gate permits **zero host capability grants** for those two
+targets. Any request for clock, filesystem, network, threads, reflection,
+interop, runtime dynamic code, host GC or other ambient host effects rejects
+at resolved-graph validation, even when the generic desktop/server
+environment might allow such effects through a different backend.
+
+This is a registration of the existing zero-import `main:()->i64`
+`core-wasm.i64-v1` profile; it is **not** a general WASI/WIT host, desktop
+UI toolkit, native compiler, scheduler, or proof of Java/LLVM semantic
+parity. `oreslang-source.wasm` currently emits portable wasm32 from a
+separately trusted LLVM compiler and supplies experimental Node workers.
+Its native Wasmtime path compiles ahead of time in a trusted Rust builder
+and uses a separately built compiler-free runner; release execution remains
+disabled until a trusted artifact approval and OS process-isolation path
+exists.
+
+`strict-aot` describes no compiler or JIT **inside the admitted deployed
+native runtime**; it cannot be inferred just because portable `.wasm`
+bytes were emitted ahead of time. Browser/Node WebAssembly engines may
+internally JIT/tier. Native Wasmtime `.cwasm` is not browser portable and
+depends on the host engine/CPU/OS compatibility tuple. Likewise,
+zero guest tracing-GC does not mean zero host JS/Rust allocations, and
+hard-RT requires deadline and worst-case execution evidence in addition
+to explicit memory ownership.
+
+Future hosted effects require a separately versioned source-checked
+capability manifest, explicit asynchronous adapters, authenticated broker
+grants and end-to-end host execution tests. This registry never grants
+authority or proves that a deployment supports the selected profile.
