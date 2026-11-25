@@ -63,3 +63,5 @@ The Rust tool enforces complete inventory coverage, no duplicate or unknown back
 ## Proposed freestanding library modes
 
 [Freestanding target modes v1](contracts/freestanding-target-modes-v1.json) defines strict core-only, allocator-explicit, and hosted-standard-library profiles. The [declaration validator](src/freestanding-modes.mjs) rejects forbidden libraries, host services, missing allocators, unknown capabilities, and forged execution evidence. Run `node --test tests/freestanding-modes.test.mjs` to execute the host-only negative matrix. This does not compile or execute any Atto guest and does **not** establish bare-metal backend parity; it is complements the capability inventory PR #3 and complements `atto-spec` PR #42.
+
+The candidate hybrid actor-memory evidence matrix is not a platform registry entry; it lives in `contracts/hybrid-actor-memory-v1.json`.
