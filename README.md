@@ -59,3 +59,5 @@ The architecture matrix is [published on main](https://github.com/atto-lang/.git
 The draft's unmerged Python-only reference validator and Python tests are replaced by `src/capability_matrix.rs`, a dependency-free Rust schema validator and 15 Rust tests. CI uses `rustc --edition=2021 --test src/capability_matrix.rs` and runs the compiled checker on the TSV. This is a deliberate migration from the draft's unused JSON v1 prototype to TSV v1, not a claim of historical data-format compatibility.
 
 The Rust tool enforces complete inventory coverage, no duplicate or unknown backend/feature/intent, and fail-closed execution metadata. A synthetic hash string can satisfy **structural** validation; it is *not* proof of compiled guest execution. Only `atto-platform-conformance` may provide independently authenticated execution receipts. This repository's checks are host-model only; no actual Atto guest is compiled or run here.
+
+The candidate hybrid actor-memory evidence matrix lives in `contracts/hybrid-actor-memory-v1.json`, outside the authority-bearing `profiles/` registry. It does not grant runtime capabilities or certify execution.

@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 // This validates declarative, fail-closed backend profiles ONLY.
 // It is not compiled .atto source, compiler codegen or a guest-runtime test.
-const profile=JSON.parse(readFileSync(new URL('../profiles/hybrid-actor-memory-v1.json',import.meta.url),'utf8'));
+const profile=JSON.parse(readFileSync(new URL('../contracts/hybrid-actor-memory-v1.json',import.meta.url),'utf8'));
 const repos=['java','llvm','net','forge','wasm','rs','cranelift','js','atto','hdl','realtime'];
 const statuses=new Set(['NOT_EXECUTED','UNSUPPORTED','PASSED','FAILED']);
 
