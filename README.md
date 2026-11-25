@@ -1,148 +1,53 @@
-# Oreslang target profiles
+> **AI agent instructions (organization-wide):** Before working on code, issues, or pull requests, read and follow the [organization `AGENTS.md`](https://github.com/atto-lang/.github/blob/main/AGENTS.md), including its **merge-first stealth-development policy**. Honor any repository-local `AGENTS.md`, explicit holds, and GitHub-enforced rules.
 
-Versioned declarative **upper bounds** for Oreslang targets and capabilities.
+# atto-target-profiles
 
-**Status:** Implemented standalone registry validator and resolved-graph admission checker. This is *not* a language compiler or a security sandbox. Compiler effect inference and real import resolution belong in oreslang-common-source and the Java/LLVM compiler implementations.
+Target platform profiles, runtime capabilities, and portability constraints for AttoLang.
 
-## Quick start
+## Naming migration and language authority
 
-~~~sh
-npm test
-npm run validate
-node bin/oreslang-target.mjs list
-node bin/oreslang-target.mjs check-closure examples/portable-closure.json --target=browser --backend=wasm --grants=clock,net.client
-~~~
+This repository is maintained at [atto-lang/atto-target-profiles](https://github.com/atto-lang/atto-target-profiles); use `https://github.com/atto-lang/atto-target-profiles.git` for Git remotes and canonical `.atto` source examples. The normative language contract is [atto-spec](https://github.com/atto-lang/atto-spec), with executable guest evidence tracked by [atto-platform-conformance](https://github.com/atto-lang/atto-platform-conformance). Follow current ownership, borrowing, effects, actor, and syntax rules there; do not infer implemented features from a README or unexecuted CI.
 
-For canonical AttoLang logical unit names, use the source-free `.atto`
-closure fixture:
+## Purpose
 
-~~~sh
-node bin/oreslang-target.mjs check-closure examples/atolang-portable-closure.json --target=browser --backend=wasm --grants=clock,net.client
-~~~
+Declare supported backend/host capabilities and explicit unsupported target combinations.
 
-This verifies declared target and grant compatibility only. Logical `.atto`
-IDs are not proof of a compiler-resolved source graph or compiled guest.
-The corresponding CLI negatives reject missing grants and a wrong backend.
+## Repository responsibilities
 
-Thirteen JSON profiles: server, desktop, browser, edge-js, edge-wasi, ios, android, embedded, fpga, asic, litegraph, ebpf, carrier-linux. Hardware profiles use an explicit `hdl` backend and zero host capabilities; they are metadata admission only, not evidence of the Oreslang hardware compiler.
+- Keep interfaces, schemas, and behavior documented in a backend-neutral form where applicable.
+- Use test fixtures and reproducible evidence to distinguish proposed behavior from implemented behavior.
+- Record breaking changes, migration notes, and dependencies on other AttoLang components.
 
-The declared backend and capabilities are *possible* host features, not proof of backend readiness or permission grants. Browser threads and dynamic code, embedded GPIO and most host APIs require additional host-specific checks.
+## Validation
 
-The admission checker consumes a **versioned, already resolved, pinned import graph** in JSON (`schemaVersion: 1`, `entry`, `nodes`). Every validated invocation must also supply an explicit backend. It checks every unconditional edge A -> B with targets(A) subset-of targets(B) and requires(B) subset-of requires(A), enforces requested-target access and a separate, explicitly granted build capability budget. Rejects unknown targets/capabilities, bad imports, duplicates and unreachable units. Input is bounded to 4,096 source units, 256 imports per unit, and 65,536 examined edges; the traversal is iterative for cyclic or deep graphs.
+Validation should rely on checked-in tests and exact-commit CI results. When reporting parity, distinguish **passed**, **failed**, **unsupported**, and **not executed**. Avoid inferring guest-runtime support from host-only tests.
 
-## Integration
-1. Pin this repository's immutable commit or eventual contract release; do not build against floating main.
-2. Have the language compiler emit the exact resolved closure and inferred effects; do not reimplement source parsing here.
-3. Expand file and package declarations into source-unit metadata before checking.
-4. Enforce approved capabilities again at runtime; the policy metadata is not a sandbox.
-5. Keep the schema vocabulary consistent with Java admission PR #586; LLVM admission PR #74 closed unmerged.
+## Status and development
 
-See https://ores-truffle-oreslang.github.io/logs/2/
+This README records the intended role of this repository; it is not a claim of feature completeness. Consult the source tree and workflow files for actual implementation and verified build commands. Contributions should preserve compatibility with the canonical language contract.
 
-### LiteGraph
+## Ecosystem
 
-`litegraph` is a Wasm-only policy upper bound for LiteGraph deployments. It permits explicit clock, randomness, network and heap capabilities; it does not grant them. Filesystem, GC, threads, dynamic code and native/Java interop remain denied. Deployment must supply explicit grants and enforce them at runtime. This registry entry is not runtime execution certification.
+- [AttoLang](https://github.com/atto-lang)
+- [Language specification](https://github.com/atto-lang/atto-spec)
+- [Cross-platform conformance](https://github.com/atto-lang/atto-platform-conformance)
 
-## eBPF and Carrier-Grade Linux pilot admission
+## Repository ownership and contribution routing
 
-- `ebpf`: LLVM BPF compilation target **metadata only**, not a verifier-loaded program. The only potential external effect is `bpf.packet.read` for verifier-bounded packet reads. The stage-0 constant-action programs require **no grants**. No heap, GC, OS threads, blocking I/O, dynamic code, arbitrary native interop, map access, helpers or kfuncs are granted. A requested packet read MUST have an explicitly inferred effect and an independent program-type/attachment verifier gate. The current resolved-closure format cannot establish valid eBPF attach ABI, packet pointer provenance, bytecode budgets or kernel verifier admission.
-- `carrier-linux`: LLVM/Graal Linux host compatibility metadata (soft-real-time/availability **candidate only**). It allows an explicitly granted subset of OS capabilities but cannot prove PREEMPT_RT behavior, deterministic latency, safety certification, redundancy or vendor carrier-grade qualification. `gc` and `dynamic.code` remain *possible* to accommodate Graal; they are **not** permissible evidence for a strict no-GC/no-JIT profile. Enforce the latter in a distinct, stronger admission/qualification gate.
+**Belongs here:** Machine-readable target profiles, backend capability names, supported host/ABI combinations, memory constraints and explicit exclusions.
 
-The bounded LLVM XDP follow-on compiler slice supplies a source-derived
-`--emit-target-closure` (see LLVM stacked PR based on #544). For constant
-XDP action, its `requires` list is empty; for `packet_u8` guards, the
-compiler infers `bpf.packet.read`. It must emit `grants: []` in both cases:
-a build policy is responsible for explicit grants, and an ungranted packet
-program must fail `check-closure`. The source-shaped regression fixtures
-in `examples/bpf-xdp-{constant,packet}-closure.json` exercise the real
-policy CLI without importing private compiler source or claiming matching
-compiler/ELF provenance.
+**Belongs elsewhere:** Device drivers belong in atto-platform.*; compiler implementers enforce the profiles inside atto-source.*; language semantics remain in atto-spec.
 
-Input admission: the `check-closure` CLI rejects final-component symlinks,
-special files, malformed UTF-8, UTF-8 BOMs, JSON nesting above 128, and
-duplicate object member names at any depth (including escaped Unicode-equivalent
-names). Its scan precedes `JSON.parse` so a last-wins duplicate cannot
-silently replace an earlier authority declaration. Parser validation is not a
-digital signature or source-provenance guarantee. The 16 MiB read bound and
-4096-node graph budgets remain independent.
+**Security and portability boundary:** Profiles are declarations, not proof: require conformance receipts for feature support and fail-closed capability admission on unsupported targets.
 
-### Bounded eBPF build admission sequence
+AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
 
-Compiler-produced XDP closure manifests are declarations, **not authority**.
-A trusted build controller should pin both the LLVM compiler commit and
-this registry's commit. The experimental sequence is:
+**Acceptance:** name the exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
 
-```sh
-# Source fixture belongs to the pinned LLVM compiler repository.
-SOURCE=/path/to/oreslang-source.llvm/examples/xdp_packet_u8.ores
-oreslang-llvmc --target=bpfel --bpf-program=xdp \
-  --emit-target-closure "$SOURCE" > xdp.closure.json
-node bin/oreslang-target.mjs check-closure xdp.closure.json \
-  --target=ebpf --backend=llvm --grants=bpf.packet.read
-oreslang-llvmc --target=bpfel --bpf-program=xdp \
-  --bpf-grants=bpf.packet.read "$SOURCE" > xdp.ll
-```
+## Migration history and maintainer safeguards
 
-The compiler deliberately emits `grants: []` in its closure; the
-`--grants=bpf.packet.read` argument comes from an independently approved
-build policy. A compiler closure declaring the wrong target/backend or
-pre-populated grants is rejected before approval. The LLVM
-`--bpf-grants=bpf.packet.read` argument is **only** a local emission
-acknowledgement, not authorization: a caller can pass it without running
-the checker. Production build orchestration must bind approved policy,
-source/tree SHA, emitted IR/object digest, compiler binary and Linux
-verifier/attach receipts under a trusted provenance contract. None of those
-cryptographic/external evidence bindings are supplied by this pilot.
+The archived predecessor is [ores-truffle-oreslang/oreslang-target-profiles](https://github.com/ores-truffle-oreslang/oreslang-target-profiles). This repository is the canonical AttoLang home; do not describe the migration as an ID-preserving GitHub transfer without independently verified evidence. Historical `.ores` fixtures and legacy CLI/package identifiers remain compatibility inputs; new source uses `.atto`. Preserve pinned source identities until their dependent evidence is regenerated.
 
-The **profile registry itself** is also parsed as authority-bearing input:
-`loadProfiles()` now requires regular, non-symlink `.json` files, bounded at
-64 KiB each, with strict UTF-8, no BOM, and no duplicate object names at any
-nesting depth. Unsupported hosts must fail closed rather than silently
-dropping `O_NONBLOCK` or `O_NOFOLLOW`. A policy registry is valid only after
-both strict file parsing and `validateRegistry()` succeed. This cannot
-authenticate a mutable checkout, replace source-review provenance, or
-prevent a compromised parent directory from being swapped externally.
+[atto-lang](https://github.com/atto-lang) owns the language, compiler, runtime, targets and conformance; [atto-co](https://github.com/atto-co) is separately scoped to hosted control planes, deployment, tenancy and billing. A future transfer or carve-out requires owner authorization and security review. Verify repository ID, exact tree/history, access, branch rules, open work, releases, workflows/runners, secrets/environments, packages, webhooks/Apps, Pages, deploy keys and consumers. Preserve private-source boundaries and rollback readiness.
 
-Both profiles require pinned compiler/target evidence and runtime enforcement. An upper-bound registry PASS is never an executed program, eBPF verifier result, deadline proof or hardware/physical signoff. See LLVM source PR #544 (BPF) and #660 (CGL), and Java source PR #1442 (CGL). Do not merge this change until downstream profile consumers and schema version-1 compatibility are reviewed; the vocabulary is expanded without changing the schema number.
-## Oreslang library boundary: ores.core and ores.std
-
-The resolved-closure contract models exactly two public library layers:
-
-- `ores.core`: freestanding/no-OS source. Core units may import only core
-  units and may not require ambient host capabilities.
-- `ores.std`: hosted/platform source. Std units may import core or std, but
-  never application units.
-
-`app` is only a resolved-graph classification for application source.
-Allocation, actors, OTP/supervision and clocks are no longer separate library
-layers. They are implemented below `ores.core` when freestanding, or below
-`ores.std` when they require hosted services. Explicit implementation
-requirements remain represented by `providerRequires` and `providers`.
-
-The only library profile values are `core` and `std`. An external build
-selection can pass the required profile to `validateClosure` so
-source-controlled closure metadata cannot downgrade or remove it.
-
-A `core` profile rejects every `std` unit and every ambient host capability.
-Explicit providers are allowed only when compiler-inferred, transitively
-propagated, and granted by the build. This permits, for example, a caller-owned
-allocator or bounded bare-metal actor executor without inventing an `alloc`
-or `actor` library tier.
-
-Existing target profiles remain capability upper bounds rather than grants.
-Metadata admission is not executable proof: native bare-metal qualification
-still requires exact compiler provenance, freestanding linking, forbidden-symbol
-audits, and target execution.
-
-See `docs/FREESTANDING_TIER_ADMISSION.md` for the enforcement matrix.
-
-## Repository ownership and migration (2026-11-08)
-
-**Current home:** `ores-truffle-oreslang/oreslang-target-profiles` (legacy Oreslang); public language name **AttoLang**. Retain existing `.ores` files and `oreslang-*` dependencies/CLI compatibility; don't infer backend or device capabilities from branding.
-
-- **Owns:** target capability/ABI feature manifests and positive/negative target conformance rules.
-- **Excludes:** implementing a specific compiler's lowering or a cloud provider.
-- **Organizations:** [atto-lang](https://github.com/atto-lang) owns compiler/runtime target adapters, language portability, stdlib and conformance. [atto-co](https://github.com/atto-co) owns hosted control planes, deployment, tenancy, billing and managed infrastructure. A similarly named destination repo is not an executed transfer or equivalent runtime.
-- **Proposed initial migration:** approved *ownership transfer* of this repository into `atto-lang/oreslang-target-profiles` **without renaming**. Preserve the numeric GitHub ID and Git tree. No direct `atto-co` migration is authorized in the current wave; later commercial carve-outs require a separate review.
-
-**Per-repo safety gates:** claim in [coordination issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26), follow private [migration PR #25's runbook](https://github.com/ores-truffle-oreslang/.github/pull/25); record exact head SHA/tree, numeric repository ID, independent security + both admin approvals, target branch protection/rulesets and access, permissions for Actions/secrets/apps/deploy keys, PRs, releases, packages, Pages and dependencies; approve rollback. Never mirror private code without authorization. After a real GitHub transfer, recheck unchanged ID/tree/history, re-establish permissions, update consumer references and rerun exact-head executable tests. `steps=[]` or `null` is `NOT_EXECUTED`; host-only checks do not demonstrate language guest parity, zero-GC, AOT or safe production use.
+Historical planning: [coordination issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26) and [migration runbook #25](https://github.com/ores-truffle-oreslang/.github/pull/25). After an authorized transfer, recheck identity/history, restore controls, update dependencies and execute exact-head tests. Empty job steps are NOT_EXECUTED; host-only checks do not prove guest parity, zero-GC, AOT or production readiness.
