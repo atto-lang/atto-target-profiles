@@ -67,3 +67,17 @@ test("unexpected fields and inherited authority are not accepted",()=>{
  // This test only probes own-key shape; do not treat accessor objects as JSON.
  assert.throws(()=>validate(g));
 });
+
+
+test('envelope validation is inert for non-data inputs',()=>{
+ let calls=0; const trap=()=>{calls++;throw Error('unexpected evaluation')};
+ for(const mutate of [
+  f=>{f.compiler.head={toString:trap}},
+  f=>{f.platform={toString:trap}},
+  f=>{f.run.steps=new Proxy(f.run.steps,{get:trap})},
+  f=>{Object.defineProperty(f.run.steps,'0',{get:trap,enumerable:true})},
+  f=>{Object.defineProperty(f.compiler,'hidden',{value:true})},
+  f=>{f.run.guest=new Proxy(f.run.guest,{get:trap})}
+ ]){const f=fixture();mutate(f);assert.throws(()=>validate(f));}
+ assert.equal(calls,0);
+});
