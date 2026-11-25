@@ -66,3 +66,13 @@ a GitHub job was stepful, establish provenance, or certify Linux/Windows/macOS.
 A trusted release publisher must independently read live job/step and binary
 identities, compare the complete immutable artifact closure, confirm reviewer
 and protected-branch policy, then execute the actual target application.
+
+## Machine-readable backend capability inventory (Rust-only, draft)
+
+The architecture matrix is [published on main](https://github.com/atto-lang/.github/blob/main/docs/compiler-feature-matrix.md). The new `profiles/compiler-feature-capabilities-v1.tsv` records all 11 backend components and 10 common features (110 rows), with distinct `soft_real_time` and `hard_real_time`. The `intent` field is an architectural responsibility designation, not demonstrated support. The `outcome` field uses `PASSED`, `FAILED`, `UNSUPPORTED` or `NOT_EXECUTED`; **all 110 initial entries are NOT_EXECUTED because no authenticated guest receipts have been imported.**
+
+The draft's unmerged Python-only reference validator and Python tests are replaced by `src/capability_matrix.rs`, a dependency-free Rust schema validator and 15 Rust tests. CI uses `rustc --edition=2021 --test src/capability_matrix.rs` and runs the compiled checker on the TSV. This is a deliberate migration from the draft's unused JSON v1 prototype to TSV v1, not a claim of historical data-format compatibility.
+
+The Rust tool enforces complete inventory coverage, no duplicate or unknown backend/feature/intent, and fail-closed execution metadata. A synthetic hash string can satisfy **structural** validation; it is *not* proof of compiled guest execution. Only `atto-platform-conformance` may provide independently authenticated execution receipts. This repository's checks are host-model only; no actual Atto guest is compiled or run here.
+
+The candidate hybrid actor-memory evidence matrix lives in `contracts/hybrid-actor-memory-v1.json`, outside the authority-bearing `profiles/` registry. It does not grant runtime capabilities or certify execution.
