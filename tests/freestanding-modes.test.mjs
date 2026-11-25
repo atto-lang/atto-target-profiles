@@ -49,3 +49,13 @@ test('deny ambiguous request metadata, unknown modes and duplicate imported laye
   denied('E_TARGET_PROFILE',()=>admitDeclaredDependencies(fresh(),q('freestanding-core',['core','core'])));
   denied('E_PROFILE_SCHEMA',()=>admitDeclaredDependencies(fresh(),{...q('freestanding-core',['core']),extra:true}));
 });
+
+
+test('schema fields match exact own property names',()=>{
+  const request=q('freestanding-core',['core']);
+  Object.defineProperty(request,'extra',{value:true,enumerable:false});
+  denied('E_PROFILE_SCHEMA',()=>admitDeclaredDependencies(fresh(),request));
+  const withSymbol=q('freestanding-core',['core']);
+  withSymbol[Symbol('extra')]=true;
+  denied('E_PROFILE_SCHEMA',()=>admitDeclaredDependencies(fresh(),withSymbol));
+});

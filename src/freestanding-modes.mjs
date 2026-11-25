@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url';
 
 const assertObject=(o,fields,where)=>{
   if(o===null||typeof o!=='object'||Array.isArray(o)||Object.getPrototypeOf(o)!==Object.prototype||
-    Object.keys(o).sort().join(',')!==fields.slice().sort().join(','))
+    Reflect.ownKeys(o).length!==fields.length || fields.some(field=>!Object.hasOwn(o,field)))
     throw new TypeError('E_PROFILE_SCHEMA: '+where);
 };
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
