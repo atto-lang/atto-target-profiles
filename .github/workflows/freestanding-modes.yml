@@ -1,0 +1,25 @@
+name: Freestanding core/alloc/std target profile schema
+on:
+  push:
+    branches: [main, 'audit/freestanding-modes-20261116']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checkout SHA
+        env:
+          EXPECTED: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --test tests/freestanding-modes.test.mjs
+      - run: node src/freestanding-modes.mjs

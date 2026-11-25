@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Oreslang core Wasm i64 artifact v1 (experimental)",
+  "title": "Oreslang core Wasm scalar artifact v1 (experimental)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,7 +22,10 @@
       "const": 1
     },
     "artifactType": {
-      "const": "oreslang.core-wasm.i64-v1"
+      "enum": [
+        "oreslang.core-wasm.i64-v1",
+        "oreslang.core-wasm.f64-v1"
+      ]
     },
     "target": {
       "const": "wasm32"

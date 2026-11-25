@@ -15,3 +15,6 @@ A real release gate still needs an independently verified source checkout,
 compiler binary, target ABI inspector, signed release records, and executed
 per-target positive/negative guest cases with nonzero workflow steps. Never
 replace compiler-backed proof with a locally matching checksum.
+
+
+The supplemental synchronous integrity inspector does not replace the existing async `admitAotCandidate` / `verifyLocalAotArtifact` APIs; both remain available. The inspector uses a bounded read and explicitly reports that guest execution, signature and target ABI are unverified.

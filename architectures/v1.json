@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "guestRefBits": 32,
+    "guestRefEncoding": "offset32-q8",
+    "handleRefBits": 32,
+    "handleRefProfiles": [
+      32,
+      64
+    ],
+    "counterBits": 64,
+    "identityBits": 64,
+    "globalIdentityBits": 128,
+    "capabilityTokenMinBits": 128,
+    "note": "Compress what is stored many times (actor-local refs), never what counts or identifies. See atto-source.llvm docs/ACTOR_SLAB_HEAP.md width policy."
+  },
+  "targets": [
+    {
+      "triple": "x86_64-unknown-linux-gnu",
+      "pointerBits": 64,
+      "endian": "little",
+      "abi": "sysv",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "host-only"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm: tests/native_heap_pointer_width_gate.rs (19 tests) on x86_64 via mirror CI ores-data-platform-test/atto-ci (ubuntu-24.04 x86_64)",
+              "atto-source.llvm #816/#836: actor_slab_heap_test + golden v1/v2"
+            ]
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "emits wasm32 guests"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "verified",
+            "evidence": [
+              "NativeAOT linux-x64 in atto-source.net CI workflows"
+            ]
+          },
+          "heap32": {
+            "status": "unverified",
+            "note": "mirror test runner aborts before the self-test on main"
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "host-only",
+            "note": "JVM bytecode"
+          },
+          "heap32": {
+            "status": "unverified",
+            "note": "mirror mvn-full stops at 1532 tests on main"
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "host-only",
+            "note": "JIT"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "host-only",
+            "note": "C++ via host toolchain"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    },
+    {
+      "triple": "aarch64-unknown-linux-gnu",
+      "pointerBits": 64,
+      "endian": "little",
+      "abi": "aapcs64",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "host-only"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm: tests/native_heap_pointer_width_gate.rs (19 tests) in Debian aarch64 container",
+              "atto-source.llvm #816/#836: actor_slab_heap_test + golden v1/v2"
+            ]
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "emits wasm32 guests"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "experimental",
+            "note": "linux-arm64 RID referenced, not gated"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "host-only",
+            "note": "JVM bytecode"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "host-only",
+            "note": "JIT"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "host-only",
+            "note": "C++ via host toolchain"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    },
+    {
+      "triple": "aarch64-apple-darwin",
+      "pointerBits": 64,
+      "endian": "little",
+      "abi": "aapcs64-darwin",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "host-only"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm #816/#836: actor_slab_heap_test + golden v1/v2 (ASan+UBSan, macOS arm64)"
+            ]
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "emits wasm32 guests"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.rs #487: cargo/rustc actor_slab_heap tests + golden v1/v2"
+            ]
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "host-only"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.net #196: ActorSlabHeapSelfTest + golden v1/v2"
+            ]
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "host-only",
+            "note": "JVM bytecode"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.java #1724: ActorSlabHeapTest + golden v1/v2 (JDK 21)"
+            ]
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "host-only",
+            "note": "JIT"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "host-only",
+            "note": "C++ via host toolchain"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    },
+    {
+      "triple": "i686-unknown-linux-gnu",
+      "pointerBits": 32,
+      "endian": "little",
+      "abi": "sysv",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "ref32 lowering verified; program emission and cross runtime pending"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm: tests/native_heap_pointer_width_gate.rs (19 tests) (Debian i386 and ubuntu -m32)",
+              "atto-source.llvm #816/#836: actor_slab_heap_test + golden v1/v2"
+            ]
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "emits wasm32 guests"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.rs #487: cargo/rustc actor_slab_heap tests + golden v1/v2 (rust:1-slim i686)"
+            ]
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "unsupported",
+            "reason": ".NET has no linux-x86 runtime"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": ".NET has no linux-x86 runtime"
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "experimental",
+            "note": "32-bit JVM only; no GraalVM native-image"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.java #1724: ActorSlabHeapTest + golden v1/v2 (OpenJDK 17, sun.arch.data.model=32)"
+            ]
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "no 32-bit x86 ISA backend in Cranelift"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "no 32-bit backend"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "needs cross C++ toolchain matrix"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    },
+    {
+      "triple": "armv7-unknown-linux-gnueabihf",
+      "pointerBits": 32,
+      "endian": "little",
+      "abi": "aapcs32-hardfp",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "ref32 lowering verified; program emission and cross runtime pending"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm: tests/native_heap_pointer_width_gate.rs (19 tests) (Debian armv7 and cross+qemu-arm)",
+              "atto-source.llvm #816/#836: actor_slab_heap_test + golden v1/v2"
+            ]
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "emits wasm32 guests"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.rs #487: cargo/rustc actor_slab_heap tests + golden v1/v2 (rust:1-slim armv7)"
+            ]
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          },
+          "heap32": {
+            "status": "unverified"
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "experimental",
+            "note": "JIT runtime verified; NativeAOT linux-arm unverified"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.net #196: ActorSlabHeapSelfTest + golden v1/v2 (self-contained linux-arm, IntPtr.Size == 4)"
+            ]
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "experimental",
+            "note": "32-bit JVM only"
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.java #1724: ActorSlabHeapTest + golden v1/v2 (OpenJDK 17, sun.arch.data.model=32)"
+            ]
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "no 32-bit ARM ISA backend in Cranelift"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "no 32-bit backend"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "unimplemented",
+            "note": "needs cross C++ toolchain matrix"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    },
+    {
+      "triple": "wasm32-unknown-unknown",
+      "pointerBits": 32,
+      "endian": "little",
+      "abi": "wasm-c",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "experimental",
+            "note": "experimental wasm32 IR"
+          },
+          "heap32": {
+            "status": "unimplemented",
+            "note": "C++ heap needs mmap or caller buffer under wasm"
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.rs browser compiler targets wasm32-unknown-unknown"
+            ]
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.rs #487: wasm32 cdylib golden v1 under Node (usize::BITS == 32)"
+            ]
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.wasm wasm32 guests"
+            ]
+          },
+          "heap32": {
+            "status": "verified",
+            "evidence": [
+              "atto-source.rs #487: wasm32 cdylib golden v1 under Node (usize::BITS == 32)"
+            ]
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "unimplemented"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "unimplemented"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "JIT for host ISAs only"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "JIT for host ISAs only"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "unimplemented"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    },
+    {
+      "triple": "thumbv7m-none-eabi",
+      "pointerBits": 32,
+      "endian": "little",
+      "abi": "aapcs32-soft",
+      "compilers": {
+        "llvm": {
+          "emission": {
+            "status": "experimental",
+            "note": "Cortex-M3 scalar IR, booted in QEMU"
+          },
+          "heap32": {
+            "status": "unimplemented",
+            "note": "bare metal: caller-buffer heap only"
+          }
+        },
+        "rs": {
+          "emission": {
+            "status": "unimplemented"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "wasm": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "emits wasm32 only"
+          }
+        },
+        "net": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "no bare-metal .NET runtime"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "no bare-metal .NET runtime"
+          }
+        },
+        "java": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "no bare-metal JVM"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "no bare-metal JVM"
+          }
+        },
+        "js": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "engine-hosted (Node/browser); not a machine triple"
+          }
+        },
+        "cranelift": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "no 32-bit backend"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "no 32-bit backend"
+          }
+        },
+        "forge": {
+          "emission": {
+            "status": "unimplemented"
+          },
+          "heap32": {
+            "status": "unimplemented"
+          }
+        },
+        "hdl": {
+          "emission": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          },
+          "heap32": {
+            "status": "unsupported",
+            "reason": "hardware description backend; no software target"
+          }
+        }
+      }
+    }
+  ]
+}

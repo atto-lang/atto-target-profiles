@@ -1,0 +1,84 @@
+{
+  "schema": "atto.target.library-modes.v1",
+  "status": "PROPOSAL_NOT_EXECUTED",
+  "modes": [
+    {
+      "name": "freestanding-core",
+      "libraries": [
+        "core"
+      ],
+      "requiredServices": [],
+      "prohibitedServices": [
+        "os",
+        "libc",
+        "heap",
+        "host_io",
+        "host_scheduler",
+        "dynamic_loader",
+        "host_gc"
+      ],
+      "entry": "platform-defined",
+      "panic": "platform-defined",
+      "executor": "none-by-default",
+      "execution": "NOT_EXECUTED"
+    },
+    {
+      "name": "freestanding-alloc",
+      "libraries": [
+        "core",
+        "alloc"
+      ],
+      "requiredServices": [
+        "explicit_allocator"
+      ],
+      "prohibitedServices": [
+        "os",
+        "libc",
+        "host_io",
+        "host_scheduler",
+        "dynamic_loader",
+        "host_gc",
+        "implicit_allocator"
+      ],
+      "entry": "platform-defined",
+      "panic": "platform-defined",
+      "executor": "none-by-default",
+      "execution": "NOT_EXECUTED"
+    },
+    {
+      "name": "hosted-std",
+      "libraries": [
+        "core",
+        "alloc",
+        "std"
+      ],
+      "requiredServices": [
+        "host_adapter",
+        "allocator"
+      ],
+      "prohibitedServices": [
+        "unapproved_host_import"
+      ],
+      "entry": "host-adapter",
+      "panic": "host-or-platform",
+      "executor": "host-or-explicit",
+      "execution": "NOT_EXECUTED"
+    }
+  ],
+  "targetBackends": [
+    "llvm",
+    "java",
+    "net",
+    "wasm",
+    "forge",
+    "rs",
+    "embedded"
+  ],
+  "proof": {
+    "sourceTreeSha": null,
+    "freestandingImageSha256": null,
+    "compiledGuestCases": 0,
+    "negativeNoArtifactCases": 0,
+    "independentGuestExecution": false
+  }
+}
