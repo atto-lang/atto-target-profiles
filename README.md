@@ -52,6 +52,21 @@ The archived predecessor is [ores-truffle-oreslang/oreslang-target-profiles](htt
 
 Historical planning: [coordination issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26) and [migration runbook #25](https://github.com/ores-truffle-oreslang/.github/pull/25). After an authorized transfer, recheck identity/history, restore controls, update dependencies and execute exact-head tests. Empty job steps are NOT_EXECUTED; host-only checks do not prove guest parity, zero-GC, AOT or production readiness.
 
+## AOT release envelope candidate (host-only)
+
+`src/aot-release-envelope.mjs` checks that an independently gathered release
+candidate declares an exact compiler commit/tree/binary, platform-native
+format/triple, artifact digest, bound guest output, and three distinct successful
+compile/link/guest-execution steps with a runner and run attempt. Run the
+source-only negative regressions with `npm test`.
+
+Passing this schema only returns `STRUCTURAL_CANDIDATE_ONLY`. It does **not**
+authenticate caller-supplied workflow IDs, execute a native binary, prove that
+a GitHub job was stepful, establish provenance, or certify Linux/Windows/macOS.
+A trusted release publisher must independently read live job/step and binary
+identities, compare the complete immutable artifact closure, confirm reviewer
+and protected-branch policy, then execute the actual target application.
+
 ## Machine-readable backend capability inventory (Rust-only, draft)
 
 The architecture matrix is [published on main](https://github.com/atto-lang/.github/blob/main/docs/compiler-feature-matrix.md). The new `profiles/compiler-feature-capabilities-v1.tsv` records all 11 backend components and 10 common features (110 rows), with distinct `soft_real_time` and `hard_real_time`. The `intent` field is an architectural responsibility designation, not demonstrated support. The `outcome` field uses `PASSED`, `FAILED`, `UNSUPPORTED` or `NOT_EXECUTED`; **all 110 initial entries are NOT_EXECUTED because no authenticated guest receipts have been imported.**
