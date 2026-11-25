@@ -76,3 +76,7 @@ The draft's unmerged Python-only reference validator and Python tests are replac
 The Rust tool enforces complete inventory coverage, no duplicate or unknown backend/feature/intent, and fail-closed execution metadata. A synthetic hash string can satisfy **structural** validation; it is *not* proof of compiled guest execution. Only `atto-platform-conformance` may provide independently authenticated execution receipts. This repository's checks are host-model only; no actual Atto guest is compiled or run here.
 
 The candidate hybrid actor-memory evidence matrix lives in `contracts/hybrid-actor-memory-v1.json`, outside the authority-bearing `profiles/` registry. It does not grant runtime capabilities or certify execution.
+
+## Proposed freestanding library modes
+
+[Freestanding target modes v1](contracts/freestanding-target-modes-v1.json) defines strict core-only, allocator-explicit, and hosted-standard-library profiles. The [declaration validator](src/freestanding-modes.mjs) rejects forbidden libraries, host services, missing allocators, unknown capabilities, and forged execution evidence. Run `node --test tests/freestanding-modes.test.mjs` to execute the host-only negative matrix. This does not compile or execute any Atto guest and does **not** establish bare-metal backend parity; it complements the capability inventory PR #3 and complements `atto-spec` PR #42.
