@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {validateCoreWasmArtifact,CORE_WASM_ABI} from "../src/artifact.mjs";
+import {validateCoreWasmArtifact,CORE_WASM_ABI,CORE_WASM_F64_ABI} from "../src/artifact.mjs";
 import {loadProfiles} from "../src/load-registry.mjs";
 const profiles=await loadProfiles();
 const x="a".repeat(64);
@@ -46,4 +46,46 @@ test("null-prototype artifact records remain valid own data",()=>{
  value.memory=Object.assign(Object.create(null),good.memory);
  value.producer=Object.assign(Object.create(null),good.producer);
  assert.equal(check(value).ok,true);
+});
+
+test("opt-in f64 artifact identity is admitted without changing legacy i64",()=>{
+ assert.equal(CORE_WASM_ABI,"oreslang.core-wasm.i64-v1");
+ assert.equal(CORE_WASM_F64_ABI,"oreslang.core-wasm.f64-v1");
+ for(const artifactType of [CORE_WASM_ABI,CORE_WASM_F64_ABI]){
+  for(const environment of ["browser","edge-js","edge-wasi"]){
+   assert.deepEqual(check({...good,artifactType,environment}),{ok:true,errors:[]},
+    artifactType+" "+environment);
+  }
+ }
+ for(const invalid of [
+  "oreslang.core-wasm.f32-v1","oreslang.core-wasm.i64-v2",
+  "oreslang.core-wasm.f64-v2","core-wasm.f64-v1","oreslang.core-wasm",
+  "oreslang.core-wasm.f64-v1\u200b"
+ ])assert.equal(check({...good,artifactType:invalid}).ok,false,invalid);
+});
+
+test("f64 artifact metadata cannot grant capabilities, imports or hide fields",()=>{
+ const base={...good,artifactType:CORE_WASM_F64_ABI};
+ for(const changed of [
+  {...base,requiredCapabilities:["clock"]},
+  {...base,imports:["env.clock"]},
+  {...base,producer:{...base.producer,compilerSha256:"BAD"}},
+  {...base,extra:false},
+  {...base,memory:{...base.memory,maximumPages:257}},
+  {...base,backend:"llvm"}
+ ])assert.equal(check(changed).ok,false,JSON.stringify(changed));
+ let triggered=0;
+ const hostile={...base};
+ Object.defineProperty(hostile,"artifactType",{
+  enumerable:true,get(){triggered++;throw new Error("hostile getter");}
+ });
+ assert.equal(check(hostile).ok,false);
+ assert.equal(triggered,0);
+ const proxy=new Proxy(base,{get(){triggered++;throw Error("proxy getter");}});
+ assert.equal(check(proxy).ok,false);
+ assert.equal(triggered,0);
+ const own=Object.assign(Object.create(null),base);
+ own.memory=Object.assign(Object.create(null),base.memory);
+ own.producer=Object.assign(Object.create(null),base.producer);
+ assert.deepEqual(check(own),{ok:true,errors:[]});
 });

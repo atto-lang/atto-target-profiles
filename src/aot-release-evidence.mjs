@@ -96,3 +96,6 @@ export async function verifyLocalAotArtifact(candidate,expected,path) {
     return {ok:false,errors:[String(error.message)],evidenceClass:"NOT_ADMITTED"};
   } finally { if (fd) await fd.close(); }
 }
+
+// Supplemental local integrity-only contract; retain existing async admission API.
+export {inspectLocalAotArtifact} from './aot-local-integrity.mjs';
