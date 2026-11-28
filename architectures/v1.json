@@ -23,7 +23,11 @@
       "compilers": {
         "llvm": {
           "emission": {
-            "status": "host-only"
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm #851/#1132: --target=<triple> emission + tests/native_cross_target_matrix.rs",
+              "hosted sportsync-co/atto-ci run 46110460123 (ubuntu x86_64, LLVM 19, qemu-user): 133 .atto fixtures identical to the native oracle (exit code + stdout), incl. 47 linked with the cross-built C actor runtime"
+            ]
           },
           "heap32": {
             "status": "verified",
@@ -121,7 +125,11 @@
       "compilers": {
         "llvm": {
           "emission": {
-            "status": "host-only"
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm #851/#1132: --target=<triple> emission + tests/native_cross_target_matrix.rs",
+              "hosted sportsync-co/atto-ci run 46110460123 (ubuntu x86_64, LLVM 19, qemu-user): 133 .atto fixtures identical to the native oracle (exit code + stdout), incl. 47 linked with the cross-built C actor runtime"
+            ]
           },
           "heap32": {
             "status": "verified",
@@ -316,8 +324,11 @@
       "compilers": {
         "llvm": {
           "emission": {
-            "status": "unimplemented",
-            "note": "ref32 lowering verified; program emission and cross runtime pending"
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm #851/#1132: --target=<triple> emission + tests/native_cross_target_matrix.rs",
+              "hosted sportsync-co/atto-ci run 46110460123 (ubuntu x86_64, LLVM 19, qemu-user): 133 .atto fixtures identical to the native oracle (exit code + stdout), incl. 47 linked with the cross-built C actor runtime"
+            ]
           },
           "heap32": {
             "status": "verified",
@@ -419,8 +430,11 @@
       "compilers": {
         "llvm": {
           "emission": {
-            "status": "unimplemented",
-            "note": "ref32 lowering verified; program emission and cross runtime pending"
+            "status": "verified",
+            "evidence": [
+              "atto-source.llvm #851/#1132: --target=<triple> emission + tests/native_cross_target_matrix.rs",
+              "hosted sportsync-co/atto-ci run 46110460123 (ubuntu x86_64, LLVM 19, qemu-user): 133 .atto fixtures identical to the native oracle (exit code + stdout), incl. 47 linked with the cross-built C actor runtime"
+            ]
           },
           "heap32": {
             "status": "verified",
