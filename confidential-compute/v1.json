@@ -1,0 +1,36 @@
+{
+  "schema": "atto.target.confidential-compute.v1",
+  "status": "TARGET_NOT_HARDWARE_VERIFIED",
+  "default_confidential_support": false,
+  "providers": [
+    "amd-sev-snp",
+    "intel-tdx"
+  ],
+  "host_environment_requirements": [
+    "vendor_hardware_available",
+    "endorsed_attestation_verified",
+    "exact_runtime_measurement_verified",
+    "fresh_nonce_and_ephemeral_key_binding",
+    "debug_disabled",
+    "minimum_tcb_policy",
+    "encrypted_secret_release_channel"
+  ],
+  "deployment_rule": "An existing OS target profile or capability list cannot imply TEE protection. Rejection is mandatory until independent trusted host attestation and key release are verified.",
+  "tenant_rule": "Host-wide TEE attestation does not grant per-TenantVM memory, socket, pointer or resource isolation inside one process.",
+  "preflight_verdict": "UNVERIFIED_CLAIMS_MATCH",
+  "may_authorize_guest": false,
+  "may_release_secrets": false,
+  "known_host_profiles": {
+    "server": "NOT_EXECUTED",
+    "carrier-linux": "NOT_EXECUTED"
+  },
+  "backend": {
+    "java": "NOT_EXECUTED",
+    "llvm": "NOT_EXECUTED",
+    "net": "NOT_EXECUTED",
+    "wasm": "NOT_EXECUTED",
+    "forge": "NOT_EXECUTED",
+    "cranelift": "NOT_EXECUTED",
+    "js": "NOT_EXECUTED"
+  }
+}
